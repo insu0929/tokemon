@@ -32,6 +32,22 @@ body[data-state="weak"] #pet.speaking #sprite, body[data-state="fainted"] #pet.s
 .health-track { flex: 1; height: 9px; padding: 1px; background: #354337; border: 1px solid #354337; border-radius: 5px; overflow: hidden; }
 .health-fill { width: 100%; height: 100%; border-top: 2px solid #a0f0b0; background: #48c888; border-radius: 2px; }
 #placeholder { font-size: 60px; }
+.exp-row { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
+.exp-label { color: #377baf; font: bold 9px/1 "Consolas", monospace; }
+.exp-track { flex: 1; height: 6px; padding: 1px; border: 1px solid #35485b; background: #24374c; overflow: hidden; }
+.exp-fill { height: 100%; width: 0; background: #58bbec; box-shadow: inset 0 1px #b9efff; transition: width 350ms ease; }
+.growth-detail { display: flex; justify-content: space-between; margin-top: 5px; color: #69735b; font-size: 9px; }
+#level { white-space: nowrap; }
+#token-form { margin-top: 6px; padding-top: 6px; border-top: 1px solid #d9d6ba; }
+.token-controls { display: flex; gap: 4px; align-items: center; }
+.token-controls input { min-width: 0; height: 24px; margin: 4px 0; padding: 2px 3px; border: 1px solid #b6b394; border-radius: 3px; font: 11px "Consolas", monospace; }
+.token-controls button { flex-shrink: 0; padding: 4px; background: #e1f2fa; border: 1px solid #86aebd; border-radius: 3px; color: #28536c; font-size: 10px; cursor: pointer; }
+.token-controls button:disabled { opacity: .5; cursor: wait; }
+#evolution-hint { display: block; text-align: center; font-size: 9px; margin: 2px 0 4px; color: #407b9c; }
+body.evolving #sprite-pose { animation: evolution-glow 700ms ease-in-out infinite !important; }
+body.evolving #pet { pointer-events: none; }
+@keyframes evolution-glow { 0%, 100% { filter: brightness(1) drop-shadow(0 0 2px #6ad5ef); transform: scale(1); } 50% { filter: brightness(4) drop-shadow(0 0 12px #a1efff); transform: scale(.92); } }
+@media (prefers-reduced-motion: reduce) { body.evolving #sprite-pose { animation: none !important; filter: brightness(1.5); } .exp-fill { transition: none; } }
 #pet.speaking #sprite { animation: hop 320ms ease-out; }
 @keyframes hop { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-6px) rotate(-3deg); } }
 @media (prefers-reduced-motion: reduce) { #pet.speaking #sprite { animation: none; } }

@@ -1,6 +1,6 @@
 {
   "name": "tokemon",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "A draggable desktop Pokemon companion",
   "main": "src/main.cjs",
@@ -8,7 +8,8 @@
     "start": "electron .",
     "build:win": "npm run check && electron-builder --win portable --x64 --publish never",
     "test:smoke": "electron scripts/smoke.cjs",
-    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/renderer.js"
+    "test": "node --test scripts/progression.test.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/renderer.js && node --check src/progression.cjs"
   },
   "build": {
     "appId": "com.insu0929.tokemon",

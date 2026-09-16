@@ -48,7 +48,13 @@ function send(method, params = {}) {
       if (state !== 'fainted' || player.timer !== undefined) throw new Error('Faint failed');
       applyRemaining(100, false);
       if (state !== 'lively' || player.timer === undefined) throw new Error('Recovery failed');
-      return 'PASS: portable exe, offline assets, animation, faint and recovery';
+      const raichu = await window.pet.assets('raichu');
+      const probe = new SpritePlayer(document.createElement('canvas'));
+      await probe.load(raichu.sprite);
+      if (probe.frames.length < 2 || !raichu.cry.startsWith('data:audio/ogg')) throw new Error('Raichu assets missing');
+      probe.dispose();
+      if (!growth || growth.level < 1 || !document.querySelector('.exp-track')) throw new Error('EXP HUD missing');
+      return 'PASS: portable exe, both species offline, EXP HUD, animation, faint and recovery';
     })()`, awaitPromise: true, returnByValue: true,
   });
   assert.ok(!result.exceptionDetails, JSON.stringify(result.exceptionDetails));

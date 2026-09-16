@@ -1,23 +1,27 @@
 const { app, BrowserWindow, ipcMain, Menu, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
+const { species, createProgression } = require('./progression.cjs');
 
 // Packaged apps use Electron's writable per-user data directory.
-if (!app.isPackaged) app.setPath('userData', path.join(__dirname, '..', '.local'));
+if (!app.isPackaged) app.setPath('userData', process.env.TOKEMON_TEST_DATA_DIR || path.join(__dirname, '..', '.local'));
+const progress = createProgression(app.getPath('userData'));
+// Keep startup read failures observable through IPC without an unhandled rejection.
+progress.get().catch(error => console.error('Progress load:', error.message));
 let pet;
 let drag;
 let dragTimer;
-let assetPromise;
+const assetPromises = new Map();
 let muted = false;
 const SIZE = 192;
-const HEIGHT = 368;
+const HEIGHT = 460;
 
 async function cachedAsset(filename, url, mime) {
   const directory = path.join(app.getPath('userData'), 'assets');
   const file = path.join(directory, filename);
   let bytes;
-  const bundled = path.join(process.resourcesPath, 'assets', filename);
-  try { bytes = await fs.readFile(app.isPackaged ? bundled : file); } catch {
+  const bundled = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'), 'assets', filename);
+  try { bytes = await fs.readFile(bundled).catch(() => fs.readFile(file)); } catch {
     const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
     if (!response.ok) throw new Error(`Asset download: ${response.status}`);
     bytes = Buffer.from(await response.arrayBuffer());
@@ -27,17 +31,19 @@ async function cachedAsset(filename, url, mime) {
   return `data:${mime};base64,${bytes.toString('base64')}`;
 }
 
-function getAssets() {
+function getAssets(kind = 'pikachu') {
+  if (!Object.hasOwn(species, kind)) throw new Error('Unknown species');
+  const id = species[kind].id;
   // Fixed PokeAPI assets: no credentials, log access, or arbitrary remote URLs.
-  assetPromise ??= Promise.all([
-    cachedAsset('pikachu.gif', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif', 'image/gif'),
-    cachedAsset('pikachu.ogg', 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/25.ogg', 'audio/ogg'),
+  if (!assetPromises.has(kind)) assetPromises.set(kind, Promise.all([
+    cachedAsset(`${kind}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${id}.gif`, 'image/gif'),
+    cachedAsset(`${kind}.ogg`, `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`, 'audio/ogg'),
   ]).then(([sprite, cry]) => ({ sprite, cry })).catch(error => {
-    assetPromise = undefined;
+    assetPromises.delete(kind);
     console.error(error.message);
     throw new Error('이미지·소리를 받지 못했어요. 인터넷 연결 후 다시 눌러 주세요.');
-  });
-  return assetPromise;
+  }));
+  return assetPromises.get(kind);
 }
 
 function homePosition() {
@@ -105,7 +111,9 @@ else {
     pet.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     pet.webContents.on('will-navigate', event => event.preventDefault());
     pet.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-    ipcMain.handle('assets', event => { if (trusted(event)) return getAssets(); });
+    ipcMain.handle('assets', (event, kind) => { if (trusted(event)) return getAssets(kind); });
+    ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
+    ipcMain.handle('preview-tokens', (event, tokens) => { if (trusted(event)) return progress.add(tokens); });
     ipcMain.on('drag-start', event => {
       if (!trusted(event) || drag) return;
       const [x, y] = pet.getPosition();
@@ -118,7 +126,7 @@ else {
       if (!trusted(event)) return;
       stopDrag();
       Menu.buildFromTemplate([
-        { label: '피카츄 · 드래그로 이동 / 클릭하면 울음소리', enabled: false },
+        { label: 'Tokemon · 드래그로 이동 / 클릭하면 울음소리', enabled: false },
         { type: 'separator' },
         { label: '음소거', type: 'checkbox', checked: muted, click: item => { muted = item.checked; pet.webContents.send('mute', muted); } },
         { label: '위치 초기화', click: () => { const p = homePosition(); pet.setPosition(p.x, p.y); void savePosition(); } },
