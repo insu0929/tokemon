@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; media-src data:">
+  <title>Tokemon · 피카츄</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <div class="pet-stage">
+    <div id="status" role="status">피카츄를 데려오는 중…</div>
+    <button id="pet" aria-label="피카츄: 클릭하면 울음소리, 드래그하면 이동, 오른쪽 클릭하면 메뉴" title="드래그로 이동 · 클릭하면 울음소리 · 우클릭 메뉴">
+      <span id="sprite-pose"><canvas id="sprite" width="144" height="144" aria-hidden="true" hidden></canvas></span>
+      <span id="placeholder">⚡</span>
+    </button>
+    </div>
+    <section id="health" aria-label="토큰 잔여량 미연동, 예시 체력 바" title="토큰 잔여량 연동 전의 예시입니다">
+      <div class="health-heading"><span>PIKACHU</span><span id="state-label" class="connection-state">활발</span></div>
+      <div class="health-row"><span class="hp-label">HP</span><div class="health-track" role="meter" aria-label="예시 잔여량" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="health-fill"></div></div></div>
+    </section>
+    <section class="preview" aria-label="토큰 미연동 상태 체험">
+      <label for="remaining">잔여량 체험 <output id="remaining-value" for="remaining">100%</output></label>
+      <input id="remaining" type="range" min="0" max="100" step="1" value="100" aria-label="체험용 잔여 토큰 비율">
+      <span class="preview-note">실제 토큰 미연동</span>
+    </section>
+  </main>
+  <script src="animation.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

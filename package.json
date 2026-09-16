@@ -1,0 +1,13 @@
+{
+  "name": "tokemon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A draggable desktop Pokemon companion",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test:smoke": "electron scripts/smoke.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/renderer.js"
+  },
+  "devDependencies": { "electron": "^41.0.0" }
+}
