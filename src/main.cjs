@@ -2,8 +2,8 @@ const { app, BrowserWindow, ipcMain, Menu, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 
-// Keep development data inside this workspace.
-app.setPath('userData', path.join(__dirname, '..', '.local'));
+// Packaged apps use Electron's writable per-user data directory.
+if (!app.isPackaged) app.setPath('userData', path.join(__dirname, '..', '.local'));
 let pet;
 let drag;
 let dragTimer;
@@ -16,7 +16,8 @@ async function cachedAsset(filename, url, mime) {
   const directory = path.join(app.getPath('userData'), 'assets');
   const file = path.join(directory, filename);
   let bytes;
-  try { bytes = await fs.readFile(file); } catch {
+  const bundled = path.join(process.resourcesPath, 'assets', filename);
+  try { bytes = await fs.readFile(app.isPackaged ? bundled : file); } catch {
     const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
     if (!response.ok) throw new Error(`Asset download: ${response.status}`);
     bytes = Buffer.from(await response.arrayBuffer());

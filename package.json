@@ -6,8 +6,21 @@
   "main": "src/main.cjs",
   "scripts": {
     "start": "electron .",
+    "build:win": "npm run check && electron-builder --win portable --x64 --publish never",
     "test:smoke": "electron scripts/smoke.cjs",
     "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/renderer.js"
   },
-  "devDependencies": { "electron": "^41.0.0" }
+  "build": {
+    "appId": "com.insu0929.tokemon",
+    "productName": "Tokemon",
+    "directories": { "output": "dist" },
+    "files": ["src/**/*", "package.json"],
+    "extraResources": [{ "from": "assets", "to": "assets" }],
+    "win": { "target": "portable" },
+    "portable": { "artifactName": "Tokemon-${version}-win-x64.exe" }
+  },
+  "devDependencies": {
+    "electron": "^41.0.0",
+    "electron-builder": "^26.15.3"
+  }
 }
