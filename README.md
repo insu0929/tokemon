@@ -6,7 +6,9 @@
 
 ### Windows 실행 파일
 
-[GitHub Releases](https://github.com/insu0929/tokemon/releases/latest)에서 `Tokemon-0.2.0-win-x64.exe`를 받아 더블 클릭하면 됩니다. 로컬 빌드 결과는 `dist/`에도 있습니다. Windows x64용이며 Node.js 설치가 필요 없습니다. 두 몬스터의 이미지와 울음소리를 포함하므로 인터넷 없이 실행할 수 있습니다. 위치와 성장 기록은 `%APPDATA%/Tokemon`에 저장합니다.
+v0.2.0 빌드 결과는 `dist/Tokemon-0.2.0-win-x64.exe`입니다. Windows x64용이며 Node.js 설치가 필요 없습니다. 두 몬스터의 이미지와 울음소리를 포함합니다. 위치와 성장 기록은 `%APPDATA%/Tokemon`에 저장합니다.
+
+v0.2.0은 빌드 PC의 Windows Application Control 정책으로 exe 직접 실행이 차단되어 배포 검증을 보류했습니다. GitHub에는 초안으로 올리며, [최신 정식 릴리스](https://github.com/insu0929/tokemon/releases/latest)는 아직 EXP 기능이 없는 v0.1.0입니다. 소스 실행의 EXP·진화·저장 복원 테스트는 통과했습니다.
 
 이 실행 파일은 코드 서명되지 않았습니다. Windows에서 게시자 확인 경고가 표시될 수 있습니다.
 
