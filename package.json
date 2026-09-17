@@ -8,8 +8,8 @@
     "start": "electron .",
     "build:win": "npm run check && electron-builder --win portable --x64 --publish never",
     "test:smoke": "electron scripts/smoke.cjs",
-    "test": "node --test scripts/progression.test.cjs",
-    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/growth-audio.js && node --check src/renderer.js && node --check src/progression.cjs && node --check src/tuning.cjs"
+    "test": "node --test scripts/progression.test.cjs scripts/usage.test.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/growth-audio.js && node --check src/renderer.js && node --check src/progression.cjs && node --check src/tuning.cjs && node --check src/usage/files.cjs && node --check src/usage/claude.cjs && node --check src/usage/codex.cjs && node --check src/usage/sync.cjs"
   },
   "build": {
     "appId": "com.insu0929.tokemon",
