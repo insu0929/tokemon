@@ -112,6 +112,17 @@ else {
     pet.webContents.on('will-navigate', event => event.preventDefault());
     pet.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     ipcMain.handle('assets', (event, kind) => { if (trusted(event)) return getAssets(kind); });
+    ipcMain.handle('growth-audio', async event => {
+      if (!trusted(event)) return;
+      const root = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'), 'assets', 'audio');
+      const [level, fanfare, evolution, success] = await Promise.all([
+        fs.readFile(path.join(root, 'level-up.wav')),
+        fs.readFile(path.join(root, 'level-up-fanfare.mp3')),
+        fs.readFile(path.join(root, 'evolution.mp3')),
+        fs.readFile(path.join(root, 'evolution-success.mp3')),
+      ]);
+      return { level: `data:audio/wav;base64,${level.toString('base64')}`, fanfare: `data:audio/mpeg;base64,${fanfare.toString('base64')}`, evolution: `data:audio/mpeg;base64,${evolution.toString('base64')}`, success: `data:audio/mpeg;base64,${success.toString('base64')}` };
+    });
     ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
     ipcMain.handle('preview-tokens', (event, tokens) => { if (trusted(event)) return progress.add(tokens); });
     ipcMain.handle('reset-progress', event => { if (trusted(event)) return progress.reset(); });

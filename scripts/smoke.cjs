@@ -7,7 +7,7 @@ require('node:fs').mkdirSync(path.join(__dirname, '..', '.local'), { recursive: 
 process.env.TOKEMON_TEST_DATA_DIR = require('node:fs').mkdtempSync(path.join(__dirname, '..', '.local', 'smoke-'));
 require('../src/main.cjs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const timeout = setTimeout(() => { console.error('Smoke test timed out'); app.exit(1); }, 60000);
+const timeout = setTimeout(() => { console.error('Smoke test timed out'); app.exit(1); }, 150000);
 
 app.whenReady().then(async () => {
   let window;
@@ -88,17 +88,64 @@ app.whenReady().then(async () => {
   const screenshot = await window.webContents.capturePage();
   await fs.writeFile(path.join(app.getPath('userData'), 'smoke.png'), screenshot.toPNG());
   assert.equal(await evaluate('growth.level'), 1);
+  window.webContents.send('mute', false);
+  await delay(50);
+  await evaluate('window.levelPlays = 0; growthAudio.level.addEventListener("play", () => window.levelPlays++);');
   await evaluate('addTokens(9999)');
   assert.equal(await evaluate('growth.exp'), 99);
-  await evaluate('addTokens(1)');
-  assert.equal(await evaluate('growth.level'), 2, 'Exact level boundary');
-  await evaluate('addTokens(29900)');
-  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Before evolution threshold');
-  await evaluate('void addTokens(100)');
+  assert.equal(await evaluate('window.levelPlays'), 0, 'EXP without level up is silent');
+  await evaluate('void addTokens(1)');
   await delay(100);
+  assert.equal(await evaluate('!growthAudio.level.paused'), true, 'Level-up effect plays');
+  assert.equal(await evaluate('document.querySelector("#level").textContent'), 'Lv.2', 'Level is visible before sounds finish');
+  assert.equal(await evaluate('growthAudio.music.paused'), true, 'No music on ordinary level up');
+  window.webContents.send('mute', true);
+  await delay(100);
+  assert.equal(await evaluate('growthAudio.level.paused && !addingTokens'), true, 'Mute stops effect and releases pending level-up');
+  assert.equal(await evaluate('growth.level'), 2, 'Exact level boundary');
+  window.webContents.send('mute', false);
+  await delay(50);
+  await evaluate('window.fanfarePlays = 0; growthAudio.fanfare.addEventListener("play", () => { if (!growthAudio.level.paused) throw new Error("Overlapping level sounds"); window.fanfarePlays++; });');
+  await evaluate('addTokens(29900)');
+  assert.equal(await evaluate('window.fanfarePlays'), 1, 'Follow-up level fanfare plays once');
+  assert.equal(await evaluate('growthAudio.fanfare.duration < 1.5'), true, 'Trailing fanfare silence removed');
+  assert.equal(await evaluate('window.levelPlays'), 2, 'Multiple levels use one fanfare');
+  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Before evolution threshold');
+  await evaluate(`window.evolutionEvents = [];
+    cry.addEventListener('play', () => { if (evolving) window.evolutionEvents.push({ kind: displayedSpecies, time: performance.now(), duration: cry.duration }); });
+    cry.addEventListener('ended', () => { if (evolving) { const event = window.evolutionEvents.findLast(item => item.kind === displayedSpecies); if (event) { event.duration = cry.duration; event.ended = performance.now(); } } });
+    growthAudio.music.addEventListener('play', () => window.evolutionEvents.push({ kind: 'music', time: performance.now(), duration: growthAudio.music.duration }));
+    growthAudio.success.addEventListener('play', () => window.evolutionEvents.push({ kind: 'success', time: performance.now() }));`);
+  await evaluate('void addTokens(100)');
+  for (let i = 0; i < 100; i++) {
+    if (await evaluate('evolving && !growthAudio.music.paused')) break;
+    await delay(100);
+  }
   assert.equal(await evaluate('evolving'), true, 'Evolution sequence starts');
+  assert.equal(await evaluate('!growthAudio.music.paused && growthAudio.level.paused'), true, 'Evolution music follows fanfare without overlap');
+  assert.equal(await evaluate('growthAudio.music.duration > 13 && growthAudio.music.duration < 14'), true, 'Shortened evolution music decoded');
+  assert.equal(await evaluate('growthAudio.music.volume === cry.volume && growthAudio.success.volume === cry.volume'), true, 'Normalized BGM uses cry playback gain');
+  window.webContents.send('mute', true);
+  await delay(50);
+  assert.equal(await evaluate('growthAudio.music.paused && cry.paused'), true, 'Mute stops evolution music');
+  window.webContents.send('mute', false);
+  await delay(50);
+  assert.equal(await evaluate('growthAudio.music.paused'), true, 'Unmute does not restart interrupted music');
   await evaluate('addTokens(1000)');
-  await delay(2400);
+  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'PIKACHU', 'Name is held until reveal');
+  for (let i = 0; i < 300; i++) {
+    if (await evaluate('!addingTokens')) break;
+    await delay(100);
+  }
+  assert.equal(await evaluate('growthAudio.music.paused'), true, 'Music ends at evolution completion');
+  const sequence = await evaluate('window.evolutionEvents');
+  assert.deepEqual(sequence.map(event => event.kind), ['pikachu', 'music', 'raichu', 'success']);
+  for (let i = 1; i < sequence.length; i++) {
+    const previous = sequence[i - 1];
+    const gap = sequence[i].time - (previous.ended ?? previous.time + previous.duration * 1000);
+    assert.ok(gap > -100 && gap < 400, `${sequence[i].kind} follows previous full clip: gap ${gap}ms`);
+  }
+  console.log('PASS: shortened evolution, complete species cries and gap-free cue order');
   assert.equal(await evaluate('growth.totalTokens'), 40000, 'Duplicate action ignored during evolution');
   assert.equal(await evaluate('displayedSpecies'), 'raichu');
   assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'RAICHU');
@@ -114,6 +161,7 @@ app.whenReady().then(async () => {
   }
   assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution restored after reload');
   assert.equal(await evaluate('growth.totalTokens'), 52345, 'Progress persists');
+  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reload does not replay growth sounds');
   await evaluate('speak()');
   assert.equal(await evaluate('!cry.paused'), true, 'Raichu cry plays');
   await evaluate('cry.pause()');
@@ -123,6 +171,14 @@ app.whenReady().then(async () => {
   const layout = await evaluate('JSON.stringify({ bottom: document.querySelector(".preview").getBoundingClientRect().bottom, height: innerHeight, top: document.querySelector("#status").getBoundingClientRect().top })');
   const bounds = JSON.parse(layout);
   assert.ok(bounds.bottom <= bounds.height && bounds.top >= 0, 'HUD and bubble fit in window');
+  await evaluate('window.originalLevelPlay = growthAudio.level.play; growthAudio.level.play = () => Promise.reject(new Error("test playback failure")); void 0;');
+  await evaluate('addTokens(10000)');
+  assert.equal(await evaluate('ready && !addingTokens && growth.level === 7'), true, 'Audio failure does not block progression');
+  await evaluate('growthAudio.level.play = window.originalLevelPlay; void 0;');
+  window.webContents.send('mute', true);
+  await delay(50);
+  await evaluate('addTokens(10000)');
+  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused && growth.level === 8'), true, 'Muted level up still progresses silently');
   window.webContents.send('reset-progress-request');
   for (let i = 0; i < 50; i++) {
     await delay(100);
@@ -130,9 +186,10 @@ app.whenReady().then(async () => {
   }
   assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Menu reset restores Pikachu');
   assert.equal(await evaluate('growth.level === 1 && growth.totalExp === 0'), true);
+  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reset stays silent');
   await evaluate('addTokens(40000)');
   assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution can be replayed after reset');
-  console.log('PASS: drag/click, audio, HP states, EXP boundaries, evolution, overflow, persistence, layout, reset and repeated evolution');
+  console.log('PASS: existing features, growth audio, mute, persistence, reset and repeated evolution');
   await fs.writeFile(path.join(app.getPath('userData'), 'position.json'), JSON.stringify({ x: originalPosition[0], y: originalPosition[1] }));
   clearTimeout(timeout);
   app.exit(0);

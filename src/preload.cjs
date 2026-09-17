@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('pet', {
   assets: kind => ipcRenderer.invoke('assets', kind),
+  growthAudio: () => ipcRenderer.invoke('growth-audio'),
   progress: () => ipcRenderer.invoke('progress'),
   resetProgress: () => ipcRenderer.invoke('reset-progress'),
   onResetProgress: callback => ipcRenderer.on('reset-progress-request', () => callback()),
