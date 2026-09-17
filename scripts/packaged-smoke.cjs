@@ -44,7 +44,7 @@ function send(method, params = {}) {
       for (let i = 0; i < 100 && !ready; i++) await new Promise(r => setTimeout(r, 100));
       if (!ready || player.frames.length < 2) throw new Error('Sprite not decoded');
       if (!assets.sprite.startsWith('data:image/gif') || !assets.cry.startsWith('data:audio/ogg')) throw new Error('Bundled assets missing');
-      applyRemaining(0, false);
+      applyRemaining(1, false);
       if (state !== 'fainted' || player.timer !== undefined) throw new Error('Faint failed');
       applyRemaining(100, false);
       if (state !== 'lively' || player.timer === undefined) throw new Error('Recovery failed');

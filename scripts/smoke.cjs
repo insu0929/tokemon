@@ -5,7 +5,11 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 require('node:fs').mkdirSync(path.join(__dirname, '..', '.local'), { recursive: true });
 process.env.TOKEMON_TEST_DATA_DIR = require('node:fs').mkdtempSync(path.join(__dirname, '..', '.local', 'smoke-'));
-require('../src/main.cjs');
+// Linked usage reads fixture logs, never the real Claude or Codex logs of this machine.
+const usageLogs = { claude: path.join(process.env.TOKEMON_TEST_DATA_DIR, 'claude-logs'), codex: path.join(process.env.TOKEMON_TEST_DATA_DIR, 'codex-logs') };
+process.env.TOKEMON_TEST_CLAUDE_LOGS = usageLogs.claude;
+process.env.TOKEMON_TEST_CODEX_LOGS = usageLogs.codex;
+const { usage } = require('../src/main.cjs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const timeout = setTimeout(() => { console.error('Smoke test timed out'); app.exit(1); }, 150000);
 
@@ -56,7 +60,8 @@ app.whenReady().then(async () => {
   await evaluate('speak()');
   assert.equal(await evaluate('cry.paused'), true, 'Mute prevents sound');
   screen.getCursorScreenPoint = originalCursor;
-  for (const [value, expected] of [[100, 'lively'], [70, 'lively'], [69, 'normal'], [50, 'normal'], [49, 'weak'], [10, 'weak'], [9, 'fainted'], [0, 'fainted']]) {
+  // Zero is now a recall transition, covered by test:recall; 1-9 remains fainted.
+  for (const [value, expected] of [[100, 'lively'], [70, 'lively'], [69, 'normal'], [50, 'normal'], [49, 'weak'], [10, 'weak'], [9, 'fainted'], [1, 'fainted']]) {
     await evaluate(`slider.value = ${value}; slider.dispatchEvent(new Event('input'));`);
     assert.equal(await evaluate('state'), expected, `State at ${value}%`);
     assert.equal(await evaluate('document.querySelector(".health-track").getAttribute("aria-valuenow")'), String(value));
@@ -71,7 +76,7 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate('cry.paused'), true, 'Fainted click stays silent');
   await evaluate('applyRemaining(30, false); speak()');
   assert.equal(await evaluate('cry.playbackRate < 1 && !cry.preservesPitch && !cry.paused'), true, 'Weak cry is slowed and pitched down');
-  await evaluate('cry.pause(); applyRemaining(0, false); speak(true)');
+  await evaluate('cry.pause(); applyRemaining(1, false); speak(true)');
   assert.equal(await evaluate('cry.playbackRate === .65 && !cry.paused'), true, 'Fainting transition plays modified cry');
   window.webContents.send('mute', true);
   await delay(50);
@@ -191,7 +196,7 @@ app.whenReady().then(async () => {
     assert.ok(gap > -100 && gap < 400, `${sequence[i].kind} follows previous full clip: gap ${gap}ms`);
   }
   console.log('PASS: shortened evolution, complete species cries and gap-free cue order');
-  assert.equal(await evaluate('growth.totalTokens'), 40000, 'Duplicate action ignored during evolution');
+  assert.equal(await evaluate('growth.totalExp'), 400, 'Duplicate action ignored during evolution');
   assert.equal(await evaluate('displayedSpecies'), 'raichu');
   assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'RAICHU');
   assert.equal(await evaluate('growth.level'), 5);
@@ -205,7 +210,7 @@ app.whenReady().then(async () => {
     await delay(100);
   }
   assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution restored after reload');
-  assert.equal(await evaluate('growth.totalTokens'), 52345, 'Progress persists');
+  assert.equal(await evaluate('growth.totalExp'), 523, 'Progress persists');
   assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reload does not replay growth sounds');
   await evaluate('speak()');
   assert.equal(await evaluate('!cry.paused'), true, 'Raichu cry plays');
@@ -235,6 +240,66 @@ app.whenReady().then(async () => {
   await evaluate('addTokens(40000)');
   assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution can be replayed after reset');
   console.log('PASS: existing features, growth audio, mute, persistence, reset and repeated evolution');
+
+  const appendLog = async (file, ...entries) => {
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.appendFile(file, entries.map(entry => `${JSON.stringify(entry)}
+`).join(''));
+  };
+  const stamp = () => new Date().toISOString();
+  const codexLimits = used => ({ timestamp: stamp(), type: 'event_msg', payload: { type: 'token_count', info: null, rate_limits: {
+    primary: { used_percent: used, window_minutes: 300, resets_at: Math.floor(Date.now() / 1000) + 3600 },
+    secondary: { used_percent: 12, window_minutes: 10080, resets_at: Math.floor(Date.now() / 1000) + 86400 } } } });
+  const shown = selector => evaluate(`getComputedStyle(document.querySelector('${selector}')).display !== 'none'`);
+  const settle = async (condition, label) => {
+    for (let i = 0; i < 100; i++) {
+      if (await evaluate(`!addingTokens && (${condition})`)) return;
+      await delay(100);
+    }
+    assert.fail(`${label}: ${condition}`);
+  };
+  assert.equal(await evaluate('document.body.dataset.source'), 'demo', 'Starts unlinked');
+  assert.equal(await shown('#token-form') && await shown('#remaining'), true, 'Demo controls are visible');
+  const codexLog = path.join(usageLogs.codex, '2026', '09', '18', 'rollout-smoke.jsonl');
+  await appendLog(path.join(usageLogs.codex, 'rollout-earlier.jsonl'), codexLimits(99));
+  await usage.select('codex');
+  await settle('document.body.dataset.source === "codex" && state === "fainted"', 'Codex HP is known right after linking');
+  assert.equal(await shown('#token-form') || await shown('#remaining'), false, 'Linked source hides the manual controls');
+  assert.match(await evaluate('document.querySelector("#limit-note").textContent'), /Codex 5시간 한도\n1% 남음/);
+  assert.equal(await evaluate('window.pet.addPreviewTokens(100).then(() => "accepted", () => "rejected")'), 'rejected', 'Typed tokens cannot mix into linked growth');
+  const levelBefore = await evaluate('growth.level');
+  await appendLog(codexLog,
+    { timestamp: stamp(), type: 'token_usage_record', payload: { response_id: 'resp_smoke', usage: { input_tokens: 9900000, cached_input_tokens: 9000000, cache_write_input_tokens: 0, output_tokens: 100000, reasoning_output_tokens: 0, total_tokens: 10000000 } } },
+    codexLimits(30));
+  await usage.poll();
+  await settle(`growth.level === ${levelBefore + 1} && state === "lively"`, 'Real Codex usage levels up and HP follows the limit');
+  assert.equal(await evaluate('document.querySelector("#level").textContent'), `Lv.${levelBefore + 1}`, '1,000,000 countable tokens are 100 EXP');
+  assert.match(await evaluate('document.querySelector("#limit-note").textContent'), /70% 남음 · .+ 초기화/);
+  const fits = () => evaluate('document.querySelector(".preview").getBoundingClientRect().bottom <= innerHeight && document.querySelector("#status").getBoundingClientRect().top >= 0');
+  assert.equal(await fits(), true, 'Linked HUD fits in window');
+  await fs.writeFile(path.join(__dirname, '..', '.local', 'usage-codex.png'), (await window.webContents.capturePage()).toPNG());
+
+  await usage.select('claude');
+  await settle('document.body.dataset.source === "claude"', 'Source switches to Claude');
+  assert.equal(await shown('#token-form'), false);
+  assert.equal(await shown('#remaining'), true, 'Claude HP is not linked yet, so the slider stays');
+  assert.match(await evaluate('document.querySelector("#source-note").textContent'), /Claude 연동 중\n10,000토큰 = 1 EXP/);
+  assert.equal(await fits(), true, 'Claude HUD fits in window');
+  await fs.writeFile(path.join(__dirname, '..', '.local', 'usage-claude.png'), (await window.webContents.capturePage()).toPNG());
+  const expBefore = await evaluate('growth.totalExp');
+  const claudeEntry = (id, output) => ({ type: 'assistant', timestamp: stamp(), message: { id, usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 80000000, output_tokens: output } } });
+  await appendLog(path.join(usageLogs.claude, 'project', 'session', 'subagents', 'agent-smoke.jsonl'), claudeEntry('msg_smoke', 12), claudeEntry('msg_smoke', 250000));
+  await usage.poll();
+  await settle(`growth.totalExp === ${expBefore + 25}`, 'Claude usage counts a streamed message once and ignores cache reads');
+  await window.webContents.reload();
+  await settle('typeof ready !== "undefined" && ready && document.body.dataset.source === "claude"', 'Linked source survives a reload');
+  assert.equal(await evaluate('growth.totalExp'), expBefore + 25, 'Linked growth persists');
+  await usage.select('demo');
+  await settle('document.body.dataset.source === "demo"', 'Back to demo');
+  assert.equal(await shown('#token-form'), true);
+  await evaluate('addTokens(100)');
+  assert.equal(await evaluate('growth.totalExp'), expBefore + 26, 'Demo input works again');
+  console.log('PASS: usage sync for Codex and Claude, linked HP, source switching and persistence');
   await fs.writeFile(path.join(app.getPath('userData'), 'position.json'), JSON.stringify({ x: originalPosition[0], y: originalPosition[1] }));
   clearTimeout(timeout);
   app.exit(0);

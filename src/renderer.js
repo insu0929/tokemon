@@ -29,6 +29,9 @@ let growth;
 let displayedSpecies;
 let evolving = false;
 let addingTokens = false;
+let usage = { source: 'demo', hp: null };
+// Linked usage that arrived while loading or during an animation; applied afterwards.
+let pendingUsage;
 let silhouetteTimer;
 let alternatingTimer;
 // The reference's 7.5-8s sound ends at ~8s, before the removed loop section.
@@ -37,6 +40,39 @@ const ALTERNATING_CUE_MS = 4959;
 const SILHOUETTE_CUE_MS = 8984;
 const tokenAdd = document.querySelector('#token-add');
 tokenAdd.disabled = true;
+const recall = new RecallAnimation(() => refreshPetPresentation());
+
+function wantsRest() {
+  if (usage.source === 'demo') return Number(slider.value) === 0;
+  return usage.hp?.exhausted === true || usage.weekly?.exhausted === true;
+}
+function refreshPetPresentation() {
+  player.setSpeed(evolving || recall.hidden ? 0 : profiles[state].speed);
+  const resting = recall.hidden || wantsRest();
+  document.body.classList.toggle('limit-exhausted', wantsRest());
+  document.querySelector('#state-label').textContent = resting ? '볼에서 휴식 중' : profiles[state].label;
+  if (resting) button.setAttribute('aria-label', '사용 한도 소진 · 포켓볼에서 휴식 중. 드래그로 이동');
+  else if (displayedSpecies) button.setAttribute('aria-label', `${displayedSpecies === 'raichu' ? '라이츄' : '피카츄'}: 클릭하면 울음소리, 드래그하면 이동`);
+}
+
+// Usage can arrive during evolution, loading or another recall. Reconcile only after
+// the current sequence finishes, using the newest status rather than queued toggles.
+async function reconcileRest() {
+  if (!ready || addingTokens || evolving || recall.busy) return;
+  const resting = wantsRest();
+  if (resting === (recall.phase === 'resting')) return;
+  ++voiceId;
+  cry.pause();
+  clearTimeout(transitionTimer);
+  button.classList.remove('speaking');
+  message(resting ? '지금 쓸 수 있는 한도를 다 썼어요.\n포켓볼에서 쉬어 갈게요.' : '다시 사용할 수 있어요!\n함께해요.', 4000);
+  const completed = await recall.play(resting);
+  if (!completed) return;
+  renderGrowth();
+  refreshPetPresentation();
+  void reconcileRest();
+  flushUsage();
+}
 
 // Source-pixel rig anchors: body axis and foot line, excluding ears and tails.
 const spriteAnchors = {
@@ -63,6 +99,7 @@ function renderGrowth() {
   document.querySelector('#evolution-hint').textContent = isRaichu ? '라이츄 · 진화 완료!' : `Lv.${growth.evolutionLevel} → 라이츄`;
   button.setAttribute('aria-label', `${name}: 클릭하면 울음소리, 드래그하면 이동`);
   document.title = `Tokemon · ${name}`;
+  refreshPetPresentation();
 }
 
 async function setSpecies(kind) {
@@ -76,16 +113,28 @@ async function setSpecies(kind) {
   displayedSpecies = kind;
   const fittedWidth = 144 * Math.min(1, sprite.width / sprite.height);
   document.documentElement.style.setProperty('--monster-width', `${Math.max(128, Math.round(fittedWidth))}px`);
-  player.setSpeed(evolving ? 0 : profiles[state].speed);
+  player.setSpeed(evolving || recall.hidden ? 0 : profiles[state].speed);
 }
 
-async function addTokens(tokens) {
-  if (addingTokens || !ready) return;
+function addTokens(tokens) {
+  return grow(() => window.pet.addPreviewTokens(tokens), gained => `+${gained} EXP · ${tokens.toLocaleString()} 토큰`);
+}
+
+// Plays level-up and evolution for a new snapshot; `describe` words an ordinary EXP gain.
+async function grow(request, describe) {
+  if (addingTokens || recall.busy || !ready) return;
   addingTokens = true;
   tokenAdd.disabled = true;
   try {
     const previous = growth;
-    growth = await window.pet.addPreviewTokens(tokens);
+    growth = await request();
+    // Credits may still earn EXP after an included usage budget is exhausted.
+    // Keep saved growth current without playing an invisible evolution inside the ball.
+    if (recall.phase === 'resting') {
+      if (displayedSpecies !== growth.species) await setSpecies(growth.species);
+      renderGrowth();
+      return;
+    }
     // Commit the visible counters immediately instead of waiting for the fanfare.
     renderGrowth();
     if (growth.level > previous.level) {
@@ -130,7 +179,8 @@ async function addTokens(tokens) {
       await growthAudio.evolutionSuccess();
     } else {
       renderGrowth();
-      message(growth.level > previous.level ? `레벨 업! Lv.${previous.level} → Lv.${growth.level}` : `+${growth.totalExp - previous.totalExp} EXP · ${tokens.toLocaleString()} 토큰`, 2500);
+      const text = growth.level > previous.level ? `레벨 업! Lv.${previous.level} → Lv.${growth.level}` : describe(growth.totalExp - previous.totalExp);
+      if (text) message(text, 2500);
     }
   } catch {
     ready = false;
@@ -142,12 +192,80 @@ async function addTokens(tokens) {
     previewPlayer.dispose();
     growthAudio.stop();
     evolving = false;
-    player.setSpeed(profiles[state].speed);
+    refreshPetPresentation();
     document.body.classList.remove('evolving', 'evolution-silhouette', 'evolution-alternating');
     addingTokens = false;
     tokenAdd.disabled = !ready;
+    void reconcileRest();
+    flushUsage();
   }
 }
+
+// Main has already saved linked usage; this only shows the newest snapshot.
+function showUsage(update) {
+  const tokens = update.tokens + (pendingUsage?.tokens ?? 0);
+  pendingUsage = { ...update, tokens };
+  flushUsage();
+}
+function flushUsage() {
+  if (!pendingUsage || addingTokens || recall.busy || !ready) return;
+  const { growth: next, tokens, name } = pendingUsage;
+  pendingUsage = undefined;
+  // Small gains within the same EXP stay quiet instead of interrupting every few seconds.
+  void grow(async () => next, gained => (gained > 0 ? `+${gained} EXP · ${name} ${tokens.toLocaleString()} 토큰` : ''));
+}
+
+const sourceNote = document.querySelector('#source-note');
+const limitNote = document.querySelector('#limit-note');
+function applyUsage(next) {
+  const changed = usage.source !== next.source;
+  usage = next;
+  // A provider change cancels the old provider's pending visual transition.
+  if (changed) recall.restore(false);
+  document.body.dataset.source = next.source;
+  const linkedHp = next.hp != null;
+  document.body.classList.toggle('linked-hp', linkedHp);
+  slider.disabled = linkedHp;
+  const health = document.querySelector('#health');
+  if (next.source === 'demo') {
+    sourceNote.textContent = '실제 토큰 미연동';
+    health.title = '토큰 잔여량 연동 전의 예시입니다';
+  } else {
+    sourceNote.textContent = `${next.name} 연동 중\n${next.tokensPerExp.toLocaleString()}토큰 = 1 EXP`;
+    health.title = linkedHp ? `${next.name} ${next.hp.windowMinutes / 60}시간 한도의 남은 비율입니다` : `${next.name} 잔여량은 아직 연동하지 않아 체험 슬라이더로 조절합니다`;
+  }
+  health.setAttribute('aria-label', health.title);
+  if (linkedHp) {
+    const reset = next.hp.resetsAt ? ` · ${new Date(next.hp.resetsAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })} 초기화` : '';
+    limitNote.textContent = `${next.name} ${next.hp.windowMinutes / 60}시간 한도\n${next.hp.remaining}% 남음${reset}${next.hp.estimated ? ' (초기화 예상)' : ''}`;
+    applyRemaining(next.hp.remaining, ready);
+  } else limitNote.textContent = next.source === 'codex' ? 'Codex 한도 정보가 아직 없어요' : '';
+  const week = next.weekly;
+  const track = document.querySelector('.weekly-track');
+  track.hidden = !week;
+  document.querySelector('#limit-legend').hidden = !linkedHp && !week;
+  document.querySelector('#short-value').textContent = linkedHp ? `5h ${next.hp.remaining}%` : '5h 미확인';
+  document.querySelector('#weekly-value').textContent = week ? `주간 ${week.remaining}%` : '주간 미확인';
+  document.querySelector('.health-track').setAttribute('aria-label', linkedHp ? '5시간 잔여량' : '체험 잔여량');
+  if (week) {
+    document.querySelector('.weekly-fill').style.width = `${week.remaining}%`;
+    track.setAttribute('aria-valuenow', week.remaining);
+    track.dataset.low = String(week.remaining <= 15);
+    const reset = week.resetsAt ? new Date(week.resetsAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : null;
+    const detail = week.exhausted ? '주간 한도 소진 · 볼에서 휴식' : `주간 ${week.remaining}% 남음${week.estimated ? ' (초기화 예상)' : ''}`;
+    limitNote.textContent += `\n${detail}${reset ? `\n${reset} 초기화` : ''}`;
+    health.title += `\n${detail}${reset ? ` · ${reset} 초기화` : ''}`;
+    track.setAttribute('aria-valuetext', `${detail}${reset ? `, ${reset} 초기화` : ''}`);
+  }
+  if (next.observedAt) health.title += `\n마지막 확인: ${new Date(next.observedAt).toLocaleString('ko-KR')}\n로그 기준이며 실제 잔여량과 차이가 날 수 있어요.`;
+  health.setAttribute('aria-label', health.title);
+  refreshPetPresentation();
+  if (changed && ready) message(next.source === 'demo' ? '체험 모드로 바꿨어요.' : `${next.name} 연동 시작! 지금부터 쓰는 토큰이 EXP가 돼요.`, 4500);
+  void reconcileRest();
+  flushUsage();
+}
+window.pet.onUsageStatus(applyUsage);
+window.pet.onUsageGrowth(showUsage);
 
 async function evolutionCry() {
   ++voiceId;
@@ -164,7 +282,7 @@ document.querySelector('#token-form').addEventListener('submit', event => {
 });
 
 async function resetGrowth() {
-  if (addingTokens || loading) return;
+  if (addingTokens || loading || recall.busy) return;
   addingTokens = true;
   tokenAdd.disabled = true;
   growthAudio.stop();
@@ -176,13 +294,15 @@ async function resetGrowth() {
     await setSpecies(growth.species);
     renderGrowth();
     ready = true;
-    message('Lv.1 피카츄로 초기화했어요! 40,000토큰을 추가하면 진화해요.', 5000);
+    message(usage.source === 'demo' ? 'Lv.1 피카츄로 초기화했어요! 40,000토큰을 추가하면 진화해요.' : 'Lv.1 피카츄로 초기화했어요!', 5000);
   } catch {
     ready = false;
     message('초기화하지 못했어요. 몬스터를 눌러 다시 불러와 주세요.');
   } finally {
     addingTokens = false;
     tokenAdd.disabled = !ready;
+    void reconcileRest();
+    flushUsage();
   }
 }
 window.pet.onResetProgress(() => { void resetGrowth(); });
@@ -204,16 +324,25 @@ async function load() {
     renderGrowth();
     sprite.hidden = false;
     placeholder.hidden = true;
+    applyRemaining(slider.value, false);
+    applyUsage(await window.pet.usageStatus());
     ready = true;
     tokenAdd.disabled = false;
-    applyRemaining(slider.value, false);
-    message('드래그로 이동 · 클릭하면 울어요', 4500);
+    // Restore a resting pet without replaying recall on every reload.
+    recall.restore(wantsRest());
+    message(wantsRest() ? '사용 한도를 다 써서\n포켓볼에서 쉬고 있어요.' : '드래그로 이동 · 클릭하면 울어요', 4500);
+    // Usage caught up while loading is newer than the snapshot fetched above.
+    flushUsage();
   } catch {
     message('몬스터나 성장 기록을 불러오지 못했어요. 눌러서 다시 시도해 주세요.');
   } finally { loading = false; }
 }
 
 async function speak(transition = false) {
+  if (recall.hidden || wantsRest()) {
+    if (!transition) message('다시 사용할 수 있을 때까지\n포켓볼에서 쉬고 있어요.', 2500);
+    return;
+  }
   if (addingTokens && !transition) return;
   if (!ready) return load();
   if (muted) { if (!transition) message('음소거 중 · 우클릭으로 해제', 1800); return; }
@@ -247,14 +376,15 @@ function applyRemaining(value, notify = true) {
   document.querySelector('#state-label').textContent = profiles[state].label;
   document.querySelector('.health-track').setAttribute('aria-valuenow', String(remaining));
   document.querySelector('.health-fill').style.width = `${remaining}%`;
-  player.setSpeed(evolving ? 0 : profiles[state].speed);
+  refreshPetPresentation();
   if (previous !== state) {
     ++voiceId;
     if (!evolving) cry.pause();
     button.classList.remove('speaking');
-    if (notify && !evolving) message(previous === 'fainted' ? '다시 힘이 나요!' : profiles[state].text, 1600);
+    if (notify && !evolving && !recall.hidden && !wantsRest()) message(previous === 'fainted' ? '다시 힘이 나요!' : profiles[state].text, 1600);
   }
   clearTimeout(transitionTimer);
+  void reconcileRest();
   if (!notify) { lastSoundState = state; return; }
   // Only announce the final state after scrubbing, not every crossed boundary.
   transitionTimer = setTimeout(() => {
@@ -262,8 +392,8 @@ function applyRemaining(value, notify = true) {
   }, 250);
 }
 slider.addEventListener('input', () => applyRemaining(slider.value));
-document.addEventListener('visibilitychange', () => player.setSpeed(evolving ? 0 : profiles[state].speed));
-window.addEventListener('beforeunload', () => { clearTimeout(transitionTimer); clearTimeout(silhouetteTimer); clearTimeout(alternatingTimer); growthAudio.stop(); player.dispose(); previewPlayer.dispose(); });
+document.addEventListener('visibilitychange', refreshPetPresentation);
+window.addEventListener('beforeunload', () => { recall.dispose(); clearTimeout(transitionTimer); clearTimeout(silhouetteTimer); clearTimeout(alternatingTimer); growthAudio.stop(); player.dispose(); previewPlayer.dispose(); });
 
 button.addEventListener('pointerdown', event => {
   if (event.button !== 0 || pressed) return;
