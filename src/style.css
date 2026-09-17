@@ -11,7 +11,13 @@ main { width: 100%; height: 100%; display: flex; flex-direction: column; align-i
 #pet:focus-visible { border-radius: 30px; outline: 2px dashed #c59d36; outline-offset: -8px; }
 #sprite { width: 144px; height: 144px; object-fit: contain; image-rendering: pixelated; pointer-events: none; filter: drop-shadow(0 5px 3px #0003); }
 #sprite[hidden] { display: none; }
-#sprite-pose { display: flex; transform-origin: 50% 72%; transition: transform 550ms ease, filter 400ms ease; }
+#sprite-pose { position: relative; display: flex; transform-origin: 50% 72%; transition: transform 550ms ease, filter 400ms ease; }
+#evolution-preview { position: absolute; inset: 0; width: 144px; height: 144px; object-fit: contain; image-rendering: pixelated; pointer-events: none; filter: brightness(0) drop-shadow(0 0 2px #e9fcff) drop-shadow(0 0 5px #72d6f2); }
+#evolution-preview[hidden] { display: none; }
+body.evolution-alternating #sprite { animation: evolution-original-swap 800ms steps(1, end) infinite !important; }
+body.evolution-alternating #evolution-preview { animation: evolution-preview-swap 800ms steps(1, end) infinite; }
+@keyframes evolution-original-swap { 0% { visibility: visible; } 50% { visibility: hidden; } }
+@keyframes evolution-preview-swap { 0% { visibility: hidden; } 50% { visibility: visible; } }
 body[data-state="lively"] #sprite-pose { animation: lively-hop 2.4s ease-in-out infinite; }
 body[data-state="weak"] #sprite-pose { transform: translateY(4px) rotate(7deg); filter: saturate(.75); }
 body[data-state="fainted"] #sprite-pose { transform-origin: 50% 50%; transform: translateY(8px) rotate(80deg) scale(.72); filter: saturate(.4); }
@@ -44,11 +50,32 @@ body[data-state="weak"] #pet.speaking #sprite, body[data-state="fainted"] #pet.s
 .token-controls button { flex-shrink: 0; padding: 4px; background: #e1f2fa; border: 1px solid #86aebd; border-radius: 3px; color: #28536c; font-size: 10px; cursor: pointer; }
 .token-controls button:disabled { opacity: .5; cursor: wait; }
 #evolution-hint { display: block; text-align: center; font-size: 9px; margin: 2px 0 4px; color: #407b9c; }
-body.evolving #sprite-pose { animation: evolution-glow 700ms ease-in-out infinite !important; }
+body.evolving #sprite-pose { animation: evolution-glow 700ms ease-in-out infinite !important; transform: none; transition: none; }
+body.evolution-alternating #sprite-pose {
+  transform-origin: 72px 136px;
+  animation: evolution-glow 700ms ease-in-out infinite, evolution-scale 800ms ease-in-out infinite !important;
+}
+@keyframes evolution-scale {
+  0%, 50%, 100% { scale: .6; }
+  25%, 75% { scale: 1; }
+}
 body.evolving #pet { pointer-events: none; }
-@keyframes evolution-glow { 0%, 100% { filter: brightness(1) drop-shadow(0 0 2px #6ad5ef); transform: scale(1); } 50% { filter: brightness(4) drop-shadow(0 0 12px #a1efff); transform: scale(.92); } }
+/* Keep the sprite itself black; animate only its pale outline and outer glow. */
+body.evolution-silhouette #sprite { filter: brightness(0); }
+body.evolution-silhouette #sprite-pose { animation: silhouette-shimmer 900ms ease-in-out infinite, silhouette-settle 180ms ease-out both !important; transform: none; transform-origin: 72px 136px; }
+@keyframes silhouette-settle { from { scale: .6; } to { scale: 1; } }
+@keyframes silhouette-shimmer {
+  0%, 100% { filter: drop-shadow(0 0 1px #e9fcff) drop-shadow(0 0 3px #72d6f2); }
+  50% { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 10px #bcf4ff); }
+}
+@keyframes evolution-glow { 0%, 100% { filter: brightness(1) drop-shadow(0 0 2px #6ad5ef); } 50% { filter: brightness(4) drop-shadow(0 0 12px #a1efff); } }
 @media (prefers-reduced-motion: reduce) { body.evolving #sprite-pose { animation: none !important; filter: brightness(1.5); } .exp-fill { transition: none; } }
 #pet.speaking #sprite { animation: hop 320ms ease-out; }
 @keyframes hop { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-6px) rotate(-3deg); } }
 @media (prefers-reduced-motion: reduce) { #pet.speaking #sprite { animation: none; } }
 @media (prefers-reduced-motion: reduce) { #sprite-pose { animation: none !important; transition: none; } }
+@media (prefers-reduced-motion: reduce) { body.evolution-silhouette #sprite-pose { animation: none !important; filter: drop-shadow(0 0 3px #bcf4ff); } }
+@media (prefers-reduced-motion: reduce) {
+  body.evolution-alternating #sprite { animation: none !important; visibility: visible; }
+  body.evolution-alternating #evolution-preview { animation: none; visibility: hidden; }
+}

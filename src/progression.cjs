@@ -30,6 +30,19 @@ function createProgression(directory) {
   })();
   return {
     async get() { await loaded; await queue; return snapshot(total); },
+    reset() {
+      const operation = queue.then(async () => {
+        await loaded;
+        await fs.mkdir(directory, { recursive: true });
+        await fs.writeFile(path.join(directory, 'progress-before-reset.json'), JSON.stringify({ version: 1, totalTokens: total }));
+        await fs.writeFile(`${filename}.tmp`, JSON.stringify({ version: 1, totalTokens: 0 }));
+        await fs.rename(`${filename}.tmp`, filename);
+        total = 0;
+        return snapshot(total);
+      });
+      queue = operation.catch(() => {});
+      return operation;
+    },
     add(tokens) {
       const operation = queue.then(async () => {
         await loaded;

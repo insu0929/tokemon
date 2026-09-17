@@ -12,7 +12,7 @@
     <div class="pet-stage">
     <div id="status" role="status">피카츄를 데려오는 중…</div>
     <button id="pet" aria-label="피카츄: 클릭하면 울음소리, 드래그하면 이동, 오른쪽 클릭하면 메뉴" title="드래그로 이동 · 클릭하면 울음소리 · 우클릭 메뉴">
-      <span id="sprite-pose"><canvas id="sprite" width="144" height="144" aria-hidden="true" hidden></canvas></span>
+      <span id="sprite-pose"><canvas id="sprite" width="144" height="144" aria-hidden="true" hidden></canvas><canvas id="evolution-preview" width="144" height="144" aria-hidden="true" hidden></canvas></span>
       <span id="placeholder">⚡</span>
     </button>
     </div>
@@ -34,6 +34,7 @@
     </section>
   </main>
   <script src="animation.js"></script>
+  <script src="growth-audio.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

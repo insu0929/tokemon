@@ -33,3 +33,17 @@ test('corrupt saves are reported rather than silently overwritten', async () => 
   await assert.rejects(store.add(100));
   assert.equal(await fs.readFile(path.join(dir, 'progress.json'), 'utf8'), '{broken');
 });
+
+test('reset restores Pikachu, preserves backup and serializes later additions', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tokemon-reset-'));
+  const store = createProgression(dir);
+  await store.add(40000);
+  const reset = await store.reset();
+  assert.equal(reset.species, 'pikachu');
+  assert.equal(reset.level, 1);
+  assert.equal(reset.totalExp, 0);
+  assert.equal(JSON.parse(await fs.readFile(path.join(dir, 'progress-before-reset.json'), 'utf8')).totalTokens, 40000);
+  assert.equal((await createProgression(dir).get()).totalTokens, 0);
+  await Promise.all([store.add(40000), store.reset(), store.add(100)]);
+  assert.equal((await store.get()).totalTokens, 100);
+});

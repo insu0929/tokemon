@@ -7,7 +7,7 @@ require('node:fs').mkdirSync(path.join(__dirname, '..', '.local'), { recursive: 
 process.env.TOKEMON_TEST_DATA_DIR = require('node:fs').mkdtempSync(path.join(__dirname, '..', '.local', 'smoke-'));
 require('../src/main.cjs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const timeout = setTimeout(() => { console.error('Smoke test timed out'); app.exit(1); }, 60000);
+const timeout = setTimeout(() => { console.error('Smoke test timed out'); app.exit(1); }, 150000);
 
 app.whenReady().then(async () => {
   let window;
@@ -88,17 +88,109 @@ app.whenReady().then(async () => {
   const screenshot = await window.webContents.capturePage();
   await fs.writeFile(path.join(app.getPath('userData'), 'smoke.png'), screenshot.toPNG());
   assert.equal(await evaluate('growth.level'), 1);
+  window.webContents.send('mute', false);
+  await delay(50);
+  await evaluate('window.levelPlays = 0; growthAudio.level.addEventListener("play", () => window.levelPlays++);');
   await evaluate('addTokens(9999)');
   assert.equal(await evaluate('growth.exp'), 99);
-  await evaluate('addTokens(1)');
-  assert.equal(await evaluate('growth.level'), 2, 'Exact level boundary');
-  await evaluate('addTokens(29900)');
-  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Before evolution threshold');
-  await evaluate('void addTokens(100)');
+  assert.equal(await evaluate('window.levelPlays'), 0, 'EXP without level up is silent');
+  await evaluate('void addTokens(1)');
   await delay(100);
+  assert.equal(await evaluate('!growthAudio.level.paused'), true, 'Level-up effect plays');
+  assert.equal(await evaluate('document.querySelector("#level").textContent'), 'Lv.2', 'Level is visible before sounds finish');
+  assert.equal(await evaluate('growthAudio.music.paused'), true, 'No music on ordinary level up');
+  window.webContents.send('mute', true);
+  await delay(100);
+  assert.equal(await evaluate('growthAudio.level.paused && !addingTokens'), true, 'Mute stops effect and releases pending level-up');
+  assert.equal(await evaluate('growth.level'), 2, 'Exact level boundary');
+  window.webContents.send('mute', false);
+  await delay(50);
+  await evaluate('window.fanfarePlays = 0; growthAudio.fanfare.addEventListener("play", () => { if (!growthAudio.level.paused) throw new Error("Overlapping level sounds"); window.fanfarePlays++; });');
+  await evaluate('addTokens(29900)');
+  assert.equal(await evaluate('window.fanfarePlays'), 1, 'Follow-up level fanfare plays once');
+  assert.equal(await evaluate('growthAudio.fanfare.duration < 1.5'), true, 'Trailing fanfare silence removed');
+  assert.equal(await evaluate('window.levelPlays'), 2, 'Multiple levels use one fanfare');
+  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Before evolution threshold');
+  await evaluate(`window.evolutionEvents = [];
+    cry.addEventListener('play', () => { if (evolving) window.evolutionEvents.push({ kind: displayedSpecies, time: performance.now(), duration: cry.duration }); });
+    cry.addEventListener('ended', () => { if (evolving) { const event = window.evolutionEvents.findLast(item => item.kind === displayedSpecies); if (event) { event.duration = cry.duration; event.ended = performance.now(); } } });
+    growthAudio.music.addEventListener('play', () => window.evolutionEvents.push({ kind: 'music', time: performance.now(), duration: growthAudio.music.duration }));
+    growthAudio.success.addEventListener('play', () => window.evolutionEvents.push({ kind: 'success', time: performance.now() }));`);
+  await evaluate('void addTokens(100)');
+  for (let i = 0; i < 100; i++) {
+    if (await evaluate('evolving && !growthAudio.music.paused')) break;
+    await delay(100);
+  }
   assert.equal(await evaluate('evolving'), true, 'Evolution sequence starts');
+  assert.equal(await evaluate('!growthAudio.music.paused && growthAudio.level.paused'), true, 'Evolution music follows fanfare without overlap');
+  assert.equal(await evaluate('growthAudio.music.duration > 13 && growthAudio.music.duration < 14'), true, 'Shortened evolution music decoded');
+  assert.equal(await evaluate('growthAudio.music.volume === cry.volume && growthAudio.success.volume === cry.volume'), true, 'Normalized BGM uses cry playback gain');
+  window.webContents.send('mute', true);
+  await delay(50);
+  assert.equal(await evaluate('growthAudio.music.paused && cry.paused'), true, 'Mute stops evolution music');
+  window.webContents.send('mute', false);
+  await delay(50);
+  assert.equal(await evaluate('growthAudio.music.paused'), true, 'Unmute does not restart interrupted music');
   await evaluate('addTokens(1000)');
-  await delay(2400);
+  for (let i = 0; i < 70; i++) {
+    if (await evaluate('document.body.classList.contains("evolution-alternating")')) break;
+    await delay(100);
+  }
+  assert.equal(await evaluate('document.body.classList.contains("evolution-alternating")'), true, 'Alternating phase begins');
+  const alternatingOffset = await evaluate('performance.now() - window.evolutionEvents.find(event => event.kind === "music").time');
+  assert.ok(Math.abs(alternatingOffset - 4959) < 600, 'Alternation starts after source 8s cue');
+  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Alternation does not change active species or cry');
+  assert.equal(await evaluate('player.index === 0 && player.timer === undefined && previewPlayer.timer === undefined'), true, 'Both forms use a stable pose during alternation');
+  const previewAlignment = await evaluate('evolutionPreview.style.translate');
+  const alternates = new Set();
+  const scaleSamples = [];
+  for (let i = 0; i < 10; i++) {
+    const frame = await evaluate('({ original: getComputedStyle(sprite).visibility, preview: getComputedStyle(evolutionPreview).visibility, filter: getComputedStyle(evolutionPreview).filter })');
+    assert.notEqual(frame.original, frame.preview, 'Only one form is visible at a time');
+    assert.ok(frame.filter.startsWith('brightness(0)'), 'Preview stays a silhouette');
+    const name = frame.original === 'visible' ? 'pikachu' : 'silhouette';
+    scaleSamples.push(await evaluate(`(() => {
+      const pose = document.querySelector('#sprite-pose');
+      const scale = parseFloat(getComputedStyle(pose).scale);
+      const box = pose.getBoundingClientRect();
+      return { scale, x: box.left + 72 * scale, feet: box.top + 136 * scale };
+    })()`));
+    if (!alternates.has(name)) {
+      await fs.writeFile(path.join(__dirname, '..', '.local', `alternating-${name}.png`), (await window.webContents.capturePage()).toPNG());
+      alternates.add(name);
+    }
+    await delay(100);
+  }
+  assert.equal(alternates.size, 2, 'Both original and silhouette are shown');
+  assert.ok(Math.min(...scaleSamples.map(item => item.scale)) < .72 && Math.max(...scaleSamples.map(item => item.scale)) > .9, 'Both forms shrink and grow');
+  for (const key of ['x', 'feet']) assert.ok(Math.max(...scaleSamples.map(item => item[key])) - Math.min(...scaleSamples.map(item => item[key])) < 1, 'Scaling preserves the shared body axis and foot line');
+  assert.equal(await evaluate('player.index'), 0, 'Original pose does not drift while switching');
+  for (let i = 0; i < 110; i++) {
+    if (await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "raichu"')) break;
+    await delay(100);
+  }
+  assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "raichu"'), true, 'Evolved silhouette appears during BGM');
+  assert.equal(await evaluate('getComputedStyle(sprite).filter'), 'brightness(0)', 'Silhouette never exposes sprite colours');
+  assert.equal(await evaluate('sprite.style.translate'), previewAlignment, 'Final form keeps the exact preview alignment');
+  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'PIKACHU', 'Name is held until reveal');
+  const cueOffset = await evaluate('performance.now() - window.evolutionEvents.find(event => event.kind === "music").time');
+  assert.ok(Math.abs(cueOffset - 8984) < 600, 'Silhouette follows source 16s cue');
+  await fs.writeFile(path.join(__dirname, '..', '.local', 'evolution-silhouette.png'), (await window.webContents.capturePage()).toPNG());
+  for (let i = 0; i < 300; i++) {
+    if (await evaluate('!addingTokens')) break;
+    await delay(100);
+  }
+  assert.equal(await evaluate('growthAudio.music.paused'), true, 'Music ends at evolution completion');
+  assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette")'), false, 'Full appearance is revealed');
+  assert.equal(await evaluate('evolutionPreview.hidden && !document.body.classList.contains("evolution-alternating")'), true, 'Alternating overlay is removed');
+  const sequence = await evaluate('window.evolutionEvents');
+  assert.deepEqual(sequence.map(event => event.kind), ['pikachu', 'music', 'raichu', 'success']);
+  for (let i = 1; i < sequence.length; i++) {
+    const previous = sequence[i - 1];
+    const gap = sequence[i].time - (previous.ended ?? previous.time + previous.duration * 1000);
+    assert.ok(gap > -100 && gap < 400, `${sequence[i].kind} follows previous full clip: gap ${gap}ms`);
+  }
+  console.log('PASS: shortened evolution, complete species cries and gap-free cue order');
   assert.equal(await evaluate('growth.totalTokens'), 40000, 'Duplicate action ignored during evolution');
   assert.equal(await evaluate('displayedSpecies'), 'raichu');
   assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'RAICHU');
@@ -114,6 +206,7 @@ app.whenReady().then(async () => {
   }
   assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution restored after reload');
   assert.equal(await evaluate('growth.totalTokens'), 52345, 'Progress persists');
+  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reload does not replay growth sounds');
   await evaluate('speak()');
   assert.equal(await evaluate('!cry.paused'), true, 'Raichu cry plays');
   await evaluate('cry.pause()');
@@ -123,7 +216,25 @@ app.whenReady().then(async () => {
   const layout = await evaluate('JSON.stringify({ bottom: document.querySelector(".preview").getBoundingClientRect().bottom, height: innerHeight, top: document.querySelector("#status").getBoundingClientRect().top })');
   const bounds = JSON.parse(layout);
   assert.ok(bounds.bottom <= bounds.height && bounds.top >= 0, 'HUD and bubble fit in window');
-  console.log('PASS: drag/click, audio, HP states, EXP boundaries, evolution, overflow, persistence, layout');
+  await evaluate('window.originalLevelPlay = growthAudio.level.play; growthAudio.level.play = () => Promise.reject(new Error("test playback failure")); void 0;');
+  await evaluate('addTokens(10000)');
+  assert.equal(await evaluate('ready && !addingTokens && growth.level === 7'), true, 'Audio failure does not block progression');
+  await evaluate('growthAudio.level.play = window.originalLevelPlay; void 0;');
+  window.webContents.send('mute', true);
+  await delay(50);
+  await evaluate('addTokens(10000)');
+  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused && growth.level === 8'), true, 'Muted level up still progresses silently');
+  window.webContents.send('reset-progress-request');
+  for (let i = 0; i < 50; i++) {
+    await delay(100);
+    if (await evaluate('!addingTokens && displayedSpecies === "pikachu"')) break;
+  }
+  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Menu reset restores Pikachu');
+  assert.equal(await evaluate('growth.level === 1 && growth.totalExp === 0'), true);
+  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reset stays silent');
+  await evaluate('addTokens(40000)');
+  assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution can be replayed after reset');
+  console.log('PASS: existing features, growth audio, mute, persistence, reset and repeated evolution');
   await fs.writeFile(path.join(app.getPath('userData'), 'position.json'), JSON.stringify({ x: originalPosition[0], y: originalPosition[1] }));
   clearTimeout(timeout);
   app.exit(0);
