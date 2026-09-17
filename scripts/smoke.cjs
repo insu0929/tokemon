@@ -191,7 +191,7 @@ app.whenReady().then(async () => {
     assert.ok(gap > -100 && gap < 400, `${sequence[i].kind} follows previous full clip: gap ${gap}ms`);
   }
   console.log('PASS: shortened evolution, complete species cries and gap-free cue order');
-  assert.equal(await evaluate('growth.totalTokens'), 40000, 'Duplicate action ignored during evolution');
+  assert.equal(await evaluate('growth.totalExp'), 400, 'Duplicate action ignored during evolution');
   assert.equal(await evaluate('displayedSpecies'), 'raichu');
   assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'RAICHU');
   assert.equal(await evaluate('growth.level'), 5);
@@ -205,7 +205,7 @@ app.whenReady().then(async () => {
     await delay(100);
   }
   assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution restored after reload');
-  assert.equal(await evaluate('growth.totalTokens'), 52345, 'Progress persists');
+  assert.equal(await evaluate('growth.totalExp'), 523, 'Progress persists');
   assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reload does not replay growth sounds');
   await evaluate('speak()');
   assert.equal(await evaluate('!cry.paused'), true, 'Raichu cry plays');
