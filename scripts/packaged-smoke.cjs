@@ -53,8 +53,10 @@ function send(method, params = {}) {
       await probe.load(raichu.sprite);
       if (probe.frames.length < 2 || !raichu.cry.startsWith('data:audio/ogg')) throw new Error('Raichu assets missing');
       probe.dispose();
+      const audio = await window.pet.growthAudio();
+      if (!audio.level.startsWith('data:audio/wav') || ![audio.fanfare, audio.evolution, audio.success].every(item => item.startsWith('data:audio/mpeg'))) throw new Error('Growth audio missing');
       if (!growth || growth.level < 1 || !document.querySelector('.exp-track')) throw new Error('EXP HUD missing');
-      return 'PASS: portable exe, both species offline, EXP HUD, animation, faint and recovery';
+      return 'PASS: portable exe, both species and growth audio offline, EXP HUD, animation, faint and recovery';
     })()`, awaitPromise: true, returnByValue: true,
   });
   assert.ok(!result.exceptionDetails, JSON.stringify(result.exceptionDetails));

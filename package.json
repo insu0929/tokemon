@@ -1,6 +1,6 @@
 {
   "name": "tokemon",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "A draggable desktop Pokemon companion",
   "main": "src/main.cjs",
