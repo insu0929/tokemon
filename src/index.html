@@ -7,7 +7,7 @@
   <title>Tokemon · 피카츄</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-source="demo">
   <main>
     <div class="pet-stage">
     <div id="status" role="status">피카츄를 데려오는 중…</div>
@@ -23,14 +23,15 @@
       <div class="growth-detail"><span id="state-label">활발</span><span id="exp-value">0 / 100</span></div>
     </section>
     <section class="preview" aria-label="토큰 미연동 상태 체험">
-      <label for="remaining">잔여량 체험 <output id="remaining-value" for="remaining">100%</output></label>
+      <label id="remaining-label" for="remaining">잔여량 체험 <output id="remaining-value" for="remaining">100%</output></label>
       <input id="remaining" type="range" min="0" max="100" step="1" value="100" aria-label="체험용 잔여 토큰 비율">
       <form id="token-form">
         <label for="token-input">사용 토큰 체험</label>
         <div class="token-controls"><input id="token-input" type="number" min="1" max="1000000" step="1" value="1000" required aria-label="추가할 체험용 토큰 수"><button id="token-add" type="submit">추가</button></div>
       </form>
+      <span id="limit-note" role="status"></span>
       <span id="evolution-hint">Lv.5 → 라이츄</span>
-      <span class="preview-note">실제 토큰 미연동</span>
+      <span id="source-note" class="preview-note">실제 토큰 미연동</span>
     </section>
   </main>
   <script src="animation.js"></script>

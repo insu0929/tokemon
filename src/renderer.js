@@ -29,6 +29,9 @@ let growth;
 let displayedSpecies;
 let evolving = false;
 let addingTokens = false;
+let usage = { source: 'demo', hp: null };
+// Linked usage that arrived while loading or during an animation; applied afterwards.
+let pendingUsage;
 let silhouetteTimer;
 let alternatingTimer;
 // The reference's 7.5-8s sound ends at ~8s, before the removed loop section.
@@ -79,13 +82,18 @@ async function setSpecies(kind) {
   player.setSpeed(evolving ? 0 : profiles[state].speed);
 }
 
-async function addTokens(tokens) {
+function addTokens(tokens) {
+  return grow(() => window.pet.addPreviewTokens(tokens), gained => `+${gained} EXP · ${tokens.toLocaleString()} 토큰`);
+}
+
+// Plays level-up and evolution for a new snapshot; `describe` words an ordinary EXP gain.
+async function grow(request, describe) {
   if (addingTokens || !ready) return;
   addingTokens = true;
   tokenAdd.disabled = true;
   try {
     const previous = growth;
-    growth = await window.pet.addPreviewTokens(tokens);
+    growth = await request();
     // Commit the visible counters immediately instead of waiting for the fanfare.
     renderGrowth();
     if (growth.level > previous.level) {
@@ -130,7 +138,8 @@ async function addTokens(tokens) {
       await growthAudio.evolutionSuccess();
     } else {
       renderGrowth();
-      message(growth.level > previous.level ? `레벨 업! Lv.${previous.level} → Lv.${growth.level}` : `+${growth.totalExp - previous.totalExp} EXP · ${tokens.toLocaleString()} 토큰`, 2500);
+      const text = growth.level > previous.level ? `레벨 업! Lv.${previous.level} → Lv.${growth.level}` : describe(growth.totalExp - previous.totalExp);
+      if (text) message(text, 2500);
     }
   } catch {
     ready = false;
@@ -146,8 +155,51 @@ async function addTokens(tokens) {
     document.body.classList.remove('evolving', 'evolution-silhouette', 'evolution-alternating');
     addingTokens = false;
     tokenAdd.disabled = !ready;
+    flushUsage();
   }
 }
+
+// Main has already saved linked usage; this only shows the newest snapshot.
+function showUsage(update) {
+  const tokens = update.tokens + (pendingUsage?.tokens ?? 0);
+  pendingUsage = { ...update, tokens };
+  flushUsage();
+}
+function flushUsage() {
+  if (!pendingUsage || addingTokens || !ready) return;
+  const { growth: next, tokens, name } = pendingUsage;
+  pendingUsage = undefined;
+  // Small gains within the same EXP stay quiet instead of interrupting every few seconds.
+  void grow(async () => next, gained => (gained > 0 ? `+${gained} EXP · ${name} ${tokens.toLocaleString()} 토큰` : ''));
+}
+
+const sourceNote = document.querySelector('#source-note');
+const limitNote = document.querySelector('#limit-note');
+function applyUsage(next) {
+  const changed = usage.source !== next.source;
+  usage = next;
+  document.body.dataset.source = next.source;
+  const linkedHp = next.hp !== null;
+  document.body.classList.toggle('linked-hp', linkedHp);
+  slider.disabled = linkedHp;
+  const health = document.querySelector('#health');
+  if (next.source === 'demo') {
+    sourceNote.textContent = '실제 토큰 미연동';
+    health.title = '토큰 잔여량 연동 전의 예시입니다';
+  } else {
+    sourceNote.textContent = `${next.name} 연동 중\n${next.tokensPerExp.toLocaleString()}토큰 = 1 EXP`;
+    health.title = linkedHp ? `${next.name} ${next.hp.windowMinutes / 60}시간 한도의 남은 비율입니다` : `${next.name} 잔여량은 아직 연동하지 않아 체험 슬라이더로 조절합니다`;
+  }
+  health.setAttribute('aria-label', health.title);
+  if (linkedHp) {
+    const reset = next.hp.resetsAt ? ` · ${new Date(next.hp.resetsAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })} 초기화` : '';
+    limitNote.textContent = `${next.name} ${next.hp.windowMinutes / 60}시간 한도\n${next.hp.remaining}% 남음${reset}`;
+    applyRemaining(next.hp.remaining, ready);
+  } else limitNote.textContent = next.source === 'codex' ? 'Codex 한도 정보가 아직 없어요' : '';
+  if (changed && ready) message(next.source === 'demo' ? '체험 모드로 바꿨어요.' : `${next.name} 연동 시작! 지금부터 쓰는 토큰이 EXP가 돼요.`, 4500);
+}
+window.pet.onUsageStatus(applyUsage);
+window.pet.onUsageGrowth(showUsage);
 
 async function evolutionCry() {
   ++voiceId;
@@ -176,13 +228,14 @@ async function resetGrowth() {
     await setSpecies(growth.species);
     renderGrowth();
     ready = true;
-    message('Lv.1 피카츄로 초기화했어요! 40,000토큰을 추가하면 진화해요.', 5000);
+    message(usage.source === 'demo' ? 'Lv.1 피카츄로 초기화했어요! 40,000토큰을 추가하면 진화해요.' : 'Lv.1 피카츄로 초기화했어요!', 5000);
   } catch {
     ready = false;
     message('초기화하지 못했어요. 몬스터를 눌러 다시 불러와 주세요.');
   } finally {
     addingTokens = false;
     tokenAdd.disabled = !ready;
+    flushUsage();
   }
 }
 window.pet.onResetProgress(() => { void resetGrowth(); });
@@ -204,10 +257,13 @@ async function load() {
     renderGrowth();
     sprite.hidden = false;
     placeholder.hidden = true;
+    applyRemaining(slider.value, false);
+    applyUsage(await window.pet.usageStatus());
     ready = true;
     tokenAdd.disabled = false;
-    applyRemaining(slider.value, false);
     message('드래그로 이동 · 클릭하면 울어요', 4500);
+    // Usage caught up while loading is newer than the snapshot fetched above.
+    flushUsage();
   } catch {
     message('몬스터나 성장 기록을 불러오지 못했어요. 눌러서 다시 시도해 주세요.');
   } finally { loading = false; }

@@ -2,12 +2,27 @@ const { app, BrowserWindow, ipcMain, Menu, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { species, createProgression } = require('./progression.cjs');
+const { createUsageSync } = require('./usage/sync.cjs');
+const claude = require('./usage/claude.cjs');
+const codex = require('./usage/codex.cjs');
 
 // Packaged apps use Electron's writable per-user data directory.
 if (!app.isPackaged) app.setPath('userData', process.env.TOKEMON_TEST_DATA_DIR || path.join(__dirname, '..', '.local'));
 const progress = createProgression(app.getPath('userData'));
 // Keep startup read failures observable through IPC without an unhandled rejection.
 progress.get().catch(error => console.error('Progress load:', error.message));
+let usageStatus = { source: 'demo', hp: null };
+// Tests point the log readers at fixtures instead of the user's real usage logs.
+const testRoots = name => process.env[name] && (() => [process.env[name]]);
+const usage = createUsageSync({
+  directory: app.getPath('userData'), progress,
+  providers: {
+    claude: { ...claude, roots: testRoots('TOKEMON_TEST_CLAUDE_LOGS') || claude.roots },
+    codex: { ...codex, roots: testRoots('TOKEMON_TEST_CODEX_LOGS') || codex.roots },
+  },
+  onGrowth: event => { if (pet && !pet.isDestroyed()) pet.webContents.send('usage-growth', event); },
+  onStatus: status => { usageStatus = status; if (pet && !pet.isDestroyed()) pet.webContents.send('usage-status', status); },
+});
 let pet;
 let drag;
 let dragTimer;
@@ -124,7 +139,13 @@ else {
       return { level: `data:audio/wav;base64,${level.toString('base64')}`, fanfare: `data:audio/mpeg;base64,${fanfare.toString('base64')}`, evolution: `data:audio/mpeg;base64,${evolution.toString('base64')}`, success: `data:audio/mpeg;base64,${success.toString('base64')}` };
     });
     ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
-    ipcMain.handle('preview-tokens', (event, tokens) => { if (trusted(event)) return progress.add(tokens); });
+    ipcMain.handle('preview-tokens', (event, tokens) => {
+      if (!trusted(event)) return;
+      // Typed tokens are a demo; they must not mix into growth earned from real usage.
+      if (usageStatus.source !== 'demo') throw new Error('Preview tokens are only available in demo mode');
+      return progress.add(tokens);
+    });
+    ipcMain.handle('usage-status', event => { if (trusted(event)) return usage.status(); });
     ipcMain.handle('reset-progress', event => { if (trusted(event)) return progress.reset(); });
     ipcMain.on('drag-start', event => {
       if (!trusted(event) || drag) return;
@@ -141,15 +162,23 @@ else {
         { label: 'Tokemon · 드래그로 이동 / 클릭하면 울음소리', enabled: false },
         { type: 'separator' },
         { label: '음소거', type: 'checkbox', checked: muted, click: item => { muted = item.checked; pet.webContents.send('mute', muted); } },
+        { label: '사용량 연동', submenu: [['demo', '체험 (수동 입력)'], ['claude', 'Claude'], ['codex', 'Codex']].map(([source, label]) => ({
+          label, type: 'radio', checked: usageStatus.source === source,
+          click: () => { usage.select(source).catch(error => console.error('Usage source:', error.message)); },
+        })) },
         { label: '위치 초기화', click: () => { const p = homePosition(); pet.setPosition(p.x, p.y); void savePosition(); } },
         { label: '성장 초기화 · Lv.1 피카츄로', click: () => pet.webContents.send('reset-progress-request') },
         { label: '종료', click: () => app.quit() },
       ]).popup({ window: pet });
     });
     pet.on('blur', () => stopDrag());
-    pet.on('closed', () => clearInterval(dragTimer));
+    pet.on('closed', () => { clearInterval(dragTimer); usage.stop(); });
+    usageStatus = await usage.status();
     await pet.loadFile(path.join(__dirname, 'index.html'));
     pet.showInactive();
+    usage.start();
   }).catch(error => { console.error(error); app.quit(); });
 }
 app.on('window-all-closed', () => app.quit());
+// The smoke test drives usage sync directly instead of waiting for the poll timer.
+if (process.env.TOKEMON_TEST_DATA_DIR) module.exports = { usage };
