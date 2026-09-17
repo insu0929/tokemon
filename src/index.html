@@ -12,13 +12,23 @@
     <div class="pet-stage">
     <div id="status" role="status">피카츄를 데려오는 중…</div>
     <button id="pet" aria-label="피카츄: 클릭하면 울음소리, 드래그하면 이동, 오른쪽 클릭하면 메뉴" title="드래그로 이동 · 클릭하면 울음소리 · 우클릭 메뉴">
-      <span id="sprite-pose"><canvas id="sprite" width="144" height="144" aria-hidden="true" hidden></canvas><canvas id="evolution-preview" width="144" height="144" aria-hidden="true" hidden></canvas></span>
+      <span id="recall-pose"><span id="sprite-pose"><canvas id="sprite" width="144" height="144" aria-hidden="true" hidden></canvas><canvas id="evolution-preview" width="144" height="144" aria-hidden="true" hidden></canvas></span></span>
+      <canvas id="recall-fx" width="176" height="160" aria-hidden="true"></canvas>
+      <span id="pokeball" aria-hidden="true">
+        <span class="ball-shadow"></span>
+        <svg class="ball-shell" viewBox="0 0 32 32" shape-rendering="crispEdges">
+          <g class="ball-bottom"><path fill="#303341" d="M2 15H30V23H28V27H24V29H20V31H12V29H8V27H4V23H2Z"/><path fill="#fff8e5" d="M4 17H28V23H26V25H22V27H18V29H12V27H8V25H6V21H4Z"/><path fill="#b2bdc9" d="M26 18H28V23H26V25H22V27H18V29H12V27H20V25H24V21H26Z"/></g>
+          <g class="ball-top"><path fill="#303341" d="M2 17V11H4V7H8V3H12V1H20V3H24V5H28V9H30V17Z"/><path fill="#e95b56" d="M4 14V11H6V7H10V5H14V3H20V5H24V7H26V11H28V14Z"/><path fill="#ba374b" d="M24 7H26V11H28V14H20V12H24Z"/><path fill="#ffb3a0" d="M8 8H12V6H18V8H12V10H8Z"/><path fill="#303341" d="M2 14H30V18H2Z"/></g>
+          <g class="ball-button"><path fill="#303341" d="M12 11H20V13H22V21H20V23H12V21H10V13H12Z"/><path fill="#fff8e5" d="M13 13H19V15H20V19H18V21H14V19H12V15H13Z"/><path class="ball-light" fill="#d5dfda" d="M14 15H18V19H14Z"/></g>
+        </svg>
+      </span>
       <span id="placeholder">⚡</span>
     </button>
     </div>
     <section id="health" aria-label="토큰 잔여량 미연동, 예시 체력 바" title="토큰 잔여량 연동 전의 예시입니다">
       <div class="health-heading"><span id="species-label">PIKACHU</span><span id="level">Lv.1</span></div>
-      <div class="health-row"><span class="hp-label">HP</span><div class="health-track" role="meter" aria-label="예시 잔여량" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="health-fill"></div></div></div>
+      <div class="health-row"><span class="hp-label">HP</span><div class="health-gauge"><div class="health-track" role="meter" aria-label="예시 잔여량" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="health-fill"></div></div><div class="weekly-track" role="meter" aria-label="주간 잔여량" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" hidden><div class="weekly-fill"></div></div></div></div>
+      <div id="limit-legend" hidden><span id="short-value"></span><span id="weekly-value"></span></div>
       <div class="exp-row"><span class="exp-label">EXP</span><div class="exp-track" role="progressbar" aria-label="다음 레벨까지 경험치" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="exp-fill"></div></div></div>
       <div class="growth-detail"><span id="state-label">활발</span><span id="exp-value">0 / 100</span></div>
     </section>
@@ -36,6 +46,7 @@
   </main>
   <script src="animation.js"></script>
   <script src="growth-audio.js"></script>
+  <script src="recall.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

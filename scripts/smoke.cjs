@@ -60,7 +60,8 @@ app.whenReady().then(async () => {
   await evaluate('speak()');
   assert.equal(await evaluate('cry.paused'), true, 'Mute prevents sound');
   screen.getCursorScreenPoint = originalCursor;
-  for (const [value, expected] of [[100, 'lively'], [70, 'lively'], [69, 'normal'], [50, 'normal'], [49, 'weak'], [10, 'weak'], [9, 'fainted'], [0, 'fainted']]) {
+  // Zero is now a recall transition, covered by test:recall; 1-9 remains fainted.
+  for (const [value, expected] of [[100, 'lively'], [70, 'lively'], [69, 'normal'], [50, 'normal'], [49, 'weak'], [10, 'weak'], [9, 'fainted'], [1, 'fainted']]) {
     await evaluate(`slider.value = ${value}; slider.dispatchEvent(new Event('input'));`);
     assert.equal(await evaluate('state'), expected, `State at ${value}%`);
     assert.equal(await evaluate('document.querySelector(".health-track").getAttribute("aria-valuenow")'), String(value));
@@ -75,7 +76,7 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate('cry.paused'), true, 'Fainted click stays silent');
   await evaluate('applyRemaining(30, false); speak()');
   assert.equal(await evaluate('cry.playbackRate < 1 && !cry.preservesPitch && !cry.paused'), true, 'Weak cry is slowed and pitched down');
-  await evaluate('cry.pause(); applyRemaining(0, false); speak(true)');
+  await evaluate('cry.pause(); applyRemaining(1, false); speak(true)');
   assert.equal(await evaluate('cry.playbackRate === .65 && !cry.paused'), true, 'Fainting transition plays modified cry');
   window.webContents.send('mute', true);
   await delay(50);
