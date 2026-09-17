@@ -92,6 +92,29 @@ document.querySelector('#token-form').addEventListener('submit', event => {
   if (input.reportValidity()) void addTokens(Number(input.value));
 });
 
+async function resetGrowth() {
+  if (addingTokens || loading) return;
+  addingTokens = true;
+  tokenAdd.disabled = true;
+  ++voiceId;
+  cry.pause();
+  clearTimeout(transitionTimer);
+  try {
+    growth = await window.pet.resetProgress();
+    await setSpecies(growth.species);
+    renderGrowth();
+    ready = true;
+    message('Lv.1 피카츄로 초기화했어요! 40,000토큰을 추가하면 진화해요.', 5000);
+  } catch {
+    ready = false;
+    message('초기화하지 못했어요. 몬스터를 눌러 다시 불러와 주세요.');
+  } finally {
+    addingTokens = false;
+    tokenAdd.disabled = !ready;
+  }
+}
+window.pet.onResetProgress(() => { void resetGrowth(); });
+
 function message(text, duration = 0) {
   clearTimeout(statusTimer);
   status.textContent = text;

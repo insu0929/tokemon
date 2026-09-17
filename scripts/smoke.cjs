@@ -123,7 +123,16 @@ app.whenReady().then(async () => {
   const layout = await evaluate('JSON.stringify({ bottom: document.querySelector(".preview").getBoundingClientRect().bottom, height: innerHeight, top: document.querySelector("#status").getBoundingClientRect().top })');
   const bounds = JSON.parse(layout);
   assert.ok(bounds.bottom <= bounds.height && bounds.top >= 0, 'HUD and bubble fit in window');
-  console.log('PASS: drag/click, audio, HP states, EXP boundaries, evolution, overflow, persistence, layout');
+  window.webContents.send('reset-progress-request');
+  for (let i = 0; i < 50; i++) {
+    await delay(100);
+    if (await evaluate('!addingTokens && displayedSpecies === "pikachu"')) break;
+  }
+  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Menu reset restores Pikachu');
+  assert.equal(await evaluate('growth.level === 1 && growth.totalExp === 0'), true);
+  await evaluate('addTokens(40000)');
+  assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution can be replayed after reset');
+  console.log('PASS: drag/click, audio, HP states, EXP boundaries, evolution, overflow, persistence, layout, reset and repeated evolution');
   await fs.writeFile(path.join(app.getPath('userData'), 'position.json'), JSON.stringify({ x: originalPosition[0], y: originalPosition[1] }));
   clearTimeout(timeout);
   app.exit(0);

@@ -114,6 +114,7 @@ else {
     ipcMain.handle('assets', (event, kind) => { if (trusted(event)) return getAssets(kind); });
     ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
     ipcMain.handle('preview-tokens', (event, tokens) => { if (trusted(event)) return progress.add(tokens); });
+    ipcMain.handle('reset-progress', event => { if (trusted(event)) return progress.reset(); });
     ipcMain.on('drag-start', event => {
       if (!trusted(event) || drag) return;
       const [x, y] = pet.getPosition();
@@ -130,6 +131,7 @@ else {
         { type: 'separator' },
         { label: '음소거', type: 'checkbox', checked: muted, click: item => { muted = item.checked; pet.webContents.send('mute', muted); } },
         { label: '위치 초기화', click: () => { const p = homePosition(); pet.setPosition(p.x, p.y); void savePosition(); } },
+        { label: '성장 초기화 · Lv.1 피카츄로', click: () => pet.webContents.send('reset-progress-request') },
         { label: '종료', click: () => app.quit() },
       ]).popup({ window: pet });
     });
