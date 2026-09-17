@@ -6,9 +6,9 @@
 
 ### Windows 실행 파일
 
-v0.2.0 빌드 결과는 `dist/Tokemon-0.2.0-win-x64.exe`입니다. Windows x64용이며 Node.js 설치가 필요 없습니다. 두 몬스터의 이미지와 울음소리를 포함합니다. 위치와 성장 기록은 `%APPDATA%/Tokemon`에 저장합니다.
+v0.3.0 빌드 결과는 `dist/Tokemon-0.3.0-win-x64.exe`입니다. Windows x64용이며 Node.js 설치가 필요 없습니다. 두 몬스터의 이미지와 울음소리, 레벨업·진화 효과음을 포함합니다. 위치와 성장 기록은 `%APPDATA%/Tokemon`에 저장합니다.
 
-v0.2.0은 빌드 PC의 Windows Application Control 정책으로 exe 직접 실행이 차단되어 배포 검증을 보류했습니다. GitHub에는 초안으로 올리며, [최신 정식 릴리스](https://github.com/insu0929/tokemon/releases/latest)는 아직 EXP 기능이 없는 v0.1.0입니다. 소스 실행의 EXP·진화·저장 복원 테스트는 통과했습니다.
+v0.3.0은 빌드 PC에서 포터블 exe를 네트워크 없이 실행하는 검사(`node scripts/packaged-smoke.cjs`)를 통과했으며 [최신 릴리스](https://github.com/insu0929/tokemon/releases/latest)에서 받을 수 있습니다. v0.2.0은 당시 빌드 PC의 Windows Application Control 정책으로 exe 실행이 차단되어 배포 검증을 하지 못했고, 정식 릴리스하지 않았습니다.
 
 이 실행 파일은 코드 서명되지 않았습니다. Windows에서 게시자 확인 경고가 표시될 수 있습니다.
 
@@ -71,6 +71,6 @@ Pokémon 관련 캐릭터·이미지·음원의 권리는 각 권리자에게 �
 
 `npm.cmd test`는 경험치 경계, 여러 레벨 상승, 직렬 저장, 잘못된 입력 및 재시작 후 복원을 검사합니다. `npm.cmd run test:smoke`는 별도의 임시 프로필에서 EXP → 진화와 화면 재로드 후 복원까지 검증하므로 사용자의 성장 기록을 변경하지 않습니다.
 
-빌드 후 `node scripts/packaged-smoke.cjs`로 실제 포터블 실행 파일의 오프라인 리소스 로딩, 애니메이션, 기절 및 회복을 검사할 수 있습니다. Node.js 22 이상과 비어 있는 로컬 포트 19387이 필요합니다.
+빌드 후 `node scripts/packaged-smoke.cjs`로 실제 포터블 실행 파일의 오프라인 리소스 로딩(두 몬스터와 성장 효과음), 애니메이션, 기절 및 회복을 검사할 수 있습니다. Node.js 22 이상과 비어 있는 로컬 포트 19387이 필요합니다.
 
 `npm.cmd run test:smoke`는 실제 Electron 창에서 GIF 프레임 디코딩, 오디오 재생 상태, 합성 포인터 이벤트에 따른 창 이동, 클릭/드래그 구분, 음소거, 상태 경계값, 기절 시 정지·무음 및 회복을 검사합니다. 실행 중인 앱을 종료한 후 실행하세요. 실제 마우스 조작과 스피커 출력은 별도로 확인해야 합니다.
