@@ -132,12 +132,57 @@ app.whenReady().then(async () => {
   await delay(50);
   assert.equal(await evaluate('growthAudio.music.paused'), true, 'Unmute does not restart interrupted music');
   await evaluate('addTokens(1000)');
+  for (let i = 0; i < 70; i++) {
+    if (await evaluate('document.body.classList.contains("evolution-alternating")')) break;
+    await delay(100);
+  }
+  assert.equal(await evaluate('document.body.classList.contains("evolution-alternating")'), true, 'Alternating phase begins');
+  const alternatingOffset = await evaluate('performance.now() - window.evolutionEvents.find(event => event.kind === "music").time');
+  assert.ok(Math.abs(alternatingOffset - 4959) < 600, 'Alternation starts after source 8s cue');
+  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Alternation does not change active species or cry');
+  assert.equal(await evaluate('player.index === 0 && player.timer === undefined && previewPlayer.timer === undefined'), true, 'Both forms use a stable pose during alternation');
+  const previewAlignment = await evaluate('evolutionPreview.style.translate');
+  const alternates = new Set();
+  const scaleSamples = [];
+  for (let i = 0; i < 10; i++) {
+    const frame = await evaluate('({ original: getComputedStyle(sprite).visibility, preview: getComputedStyle(evolutionPreview).visibility, filter: getComputedStyle(evolutionPreview).filter })');
+    assert.notEqual(frame.original, frame.preview, 'Only one form is visible at a time');
+    assert.ok(frame.filter.startsWith('brightness(0)'), 'Preview stays a silhouette');
+    const name = frame.original === 'visible' ? 'pikachu' : 'silhouette';
+    scaleSamples.push(await evaluate(`(() => {
+      const pose = document.querySelector('#sprite-pose');
+      const scale = parseFloat(getComputedStyle(pose).scale);
+      const box = pose.getBoundingClientRect();
+      return { scale, x: box.left + 72 * scale, feet: box.top + 136 * scale };
+    })()`));
+    if (!alternates.has(name)) {
+      await fs.writeFile(path.join(__dirname, '..', '.local', `alternating-${name}.png`), (await window.webContents.capturePage()).toPNG());
+      alternates.add(name);
+    }
+    await delay(100);
+  }
+  assert.equal(alternates.size, 2, 'Both original and silhouette are shown');
+  assert.ok(Math.min(...scaleSamples.map(item => item.scale)) < .72 && Math.max(...scaleSamples.map(item => item.scale)) > .9, 'Both forms shrink and grow');
+  for (const key of ['x', 'feet']) assert.ok(Math.max(...scaleSamples.map(item => item[key])) - Math.min(...scaleSamples.map(item => item[key])) < 1, 'Scaling preserves the shared body axis and foot line');
+  assert.equal(await evaluate('player.index'), 0, 'Original pose does not drift while switching');
+  for (let i = 0; i < 110; i++) {
+    if (await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "raichu"')) break;
+    await delay(100);
+  }
+  assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "raichu"'), true, 'Evolved silhouette appears during BGM');
+  assert.equal(await evaluate('getComputedStyle(sprite).filter'), 'brightness(0)', 'Silhouette never exposes sprite colours');
+  assert.equal(await evaluate('sprite.style.translate'), previewAlignment, 'Final form keeps the exact preview alignment');
   assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'PIKACHU', 'Name is held until reveal');
+  const cueOffset = await evaluate('performance.now() - window.evolutionEvents.find(event => event.kind === "music").time');
+  assert.ok(Math.abs(cueOffset - 8984) < 600, 'Silhouette follows source 16s cue');
+  await fs.writeFile(path.join(__dirname, '..', '.local', 'evolution-silhouette.png'), (await window.webContents.capturePage()).toPNG());
   for (let i = 0; i < 300; i++) {
     if (await evaluate('!addingTokens')) break;
     await delay(100);
   }
   assert.equal(await evaluate('growthAudio.music.paused'), true, 'Music ends at evolution completion');
+  assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette")'), false, 'Full appearance is revealed');
+  assert.equal(await evaluate('evolutionPreview.hidden && !document.body.classList.contains("evolution-alternating")'), true, 'Alternating overlay is removed');
   const sequence = await evaluate('window.evolutionEvents');
   assert.deepEqual(sequence.map(event => event.kind), ['pikachu', 'music', 'raichu', 'success']);
   for (let i = 1; i < sequence.length; i++) {
