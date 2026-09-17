@@ -151,7 +151,7 @@ test('Codex HP follows the 5-hour window, is known right after linking, and refi
   });
   assert.equal((await sync.status()).hp, null, 'Demo mode has no linked HP');
   const linked = await sync.select('codex');
-  assert.deepEqual(linked.hp, { remaining: 48, resetsAt: Math.floor(resetsAt / 1000) * 1000, windowMinutes: 300 });
+  assert.deepEqual(linked.hp, { remaining: 48, resetsAt: Math.floor(resetsAt / 1000) * 1000, windowMinutes: 300, exhausted: false, estimated: false });
   assert.equal(await t.exp(), 0, 'Reading limits from an old log credits nothing');
   t.clock.now += 1000;
   await t.append(path.join(t.logs.codex, 'rollout-now.jsonl'), codexCount({ time: t.clock.now, total: 0, limits: rateLimits(93.4, resetsAt) }));
@@ -159,7 +159,7 @@ test('Codex HP follows the 5-hour window, is known right after linking, and refi
   assert.equal((await sync.status()).hp.remaining, 7);
   t.clock.now = resetsAt + 1000;
   await sync.poll();
-  assert.deepEqual((await sync.status()).hp, { remaining: 100, resetsAt: undefined, windowMinutes: 300 });
+  assert.deepEqual((await sync.status()).hp, { remaining: 100, resetsAt: undefined, windowMinutes: 300, exhausted: false, estimated: true });
   assert.deepEqual(statuses.map(status => status.hp?.remaining), [48, 7, 100]);
 });
 
@@ -184,6 +184,91 @@ test('Switching sources relinks from now; demo mode reads nothing', async () => 
   await sync.poll();
   assert.equal(await t.exp(), 1);
   await assert.rejects(sync.select('gemini'));
+});
+
+test('Weekly exhaustion is independent of five-hour HP and rounding; reset releases the pet', async () => {
+  const t = await setup();
+  const log = path.join(t.logs.codex, 'week.jsonl');
+  const sync = t.open();
+  await sync.select('codex');
+  let resetsAt = Math.floor((t.clock.now + 24 * HOUR) / 1000) * 1000;
+  const write = async (used, short = 20) => {
+    t.clock.now += 1000;
+    await t.append(log, codexCount({ time: t.clock.now, limits: {
+      // Deliberately reversed: identify the window by duration, never slot name.
+      primary: { used_percent: used, window_minutes: 10080, resets_at: resetsAt / 1000 },
+      secondary: { used_percent: short, window_minutes: 300, resets_at: (t.clock.now + HOUR) / 1000 },
+    } }));
+    await sync.poll();
+    return sync.status();
+  };
+  let status = await write(99.6);
+  assert.equal(status.hp.remaining, 80);
+  assert.equal(status.weekly.remaining, 1);
+  assert.equal(status.weekly.exhausted, false, 'Rounding must not trigger recall');
+  status = await write(100);
+  assert.equal(status.weekly.exhausted, true);
+  assert.equal(status.hp.remaining, 80, 'Weekly exhaustion does not overwrite HP');
+  const restarted = t.open();
+  assert.equal((await restarted.status()).weekly.exhausted, true, 'First status after restart restores rest before rendering');
+  t.clock.now += 2 * HOUR;
+  assert.equal((await sync.status()).hp.remaining, 100);
+  assert.equal((await sync.status()).weekly.exhausted, true, 'Short reset cannot release a weekly-exhausted pet');
+  t.clock.now = resetsAt;
+  status = await sync.status();
+  assert.equal(status.weekly.exhausted, false);
+  assert.equal(status.weekly.remaining, 100);
+  assert.equal(status.weekly.estimated, true, 'Timer reset is labelled as inferred until fresh logs arrive');
+  resetsAt += 7 * 24 * HOUR;
+  status = await write(12);
+  assert.equal(status.weekly.remaining, 88);
+  assert.equal(status.weekly.estimated, false);
+  assert.equal((await sync.select('claude')).weekly, null);
+});
+
+test('Missing or malformed windows do not invent weekly exhaustion or substitute weekly HP', async () => {
+  const t = await setup();
+  const sync = t.open();
+  await sync.select('codex');
+  const log = path.join(t.logs.codex, 'partial.jsonl');
+  t.clock.now += 1000;
+  await t.append(log, codexCount({ time: t.clock.now, limits: {
+    primary: { used_percent: 100, window_minutes: 10080 },
+    secondary: { used_percent: 'invalid', window_minutes: 300 },
+  } }));
+  await sync.poll();
+  assert.equal((await sync.status()).hp, null);
+  assert.equal((await sync.status()).weekly.exhausted, true, 'Without reset time, no automatic recovery is invented');
+  t.clock.now += HOUR;
+  await t.append(log, codexCount({ time: t.clock.now, limits: {
+    primary: { used_percent: 15, window_minutes: 300 },
+  } }));
+  await sync.poll();
+  assert.equal((await sync.status()).weekly.exhausted, true, 'An update omitting weekly data cannot release the pet');
+  assert.equal((await sync.status()).hp.remaining, 85);
+});
+
+test('Five-hour exhaustion uses the actual limit and clears only when its own window resets', async () => {
+  const t = await setup();
+  const sync = t.open();
+  await sync.select('codex');
+  const log = path.join(t.logs.codex, 'short.jsonl');
+  const reset = t.clock.now + HOUR;
+  for (const used of [99.6, 100]) {
+    t.clock.now += 1000;
+    await t.append(log, codexCount({ time: t.clock.now, limits: rateLimits(used, reset) }));
+    await sync.poll();
+    const status = await sync.status();
+    assert.equal(status.hp.exhausted, used === 100);
+    assert.equal(status.hp.remaining, used === 100 ? 0 : 1);
+    assert.equal(status.weekly.exhausted, false);
+  }
+  assert.equal((await t.open().status()).hp.exhausted, true, 'Short exhaustion is restored before rendering');
+  t.clock.now = reset + 1000;
+  const status = await sync.status();
+  assert.equal(status.hp.exhausted, false);
+  assert.equal(status.hp.estimated, true);
+  assert.equal(status.weekly.remaining, 91);
 });
 
 test('Default log locations on this platform', () => {

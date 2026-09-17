@@ -29,6 +29,9 @@ function createUsageSync({ directory, providers, progress, now = Date.now, onGro
       if (saved.version === 1 && (saved.source === 'demo' || Object.hasOwn(providers, saved.source))) state = saved;
     } catch { /* First launch or unreadable settings: start unlinked. */ }
     if (state.source !== 'demo' && !state.linked[state.source]) state.source = 'demo';
+    // Hydrate before the renderer's first status request so a resting pet starts
+    // inside its ball instead of replaying recall after every application launch.
+    if (providers[state.source]) await primeLimits(providers[state.source]);
   })();
 
   function enqueue(task) {
@@ -54,13 +57,20 @@ function createUsageSync({ directory, providers, progress, now = Date.now, onGro
 
   function status() {
     const source = state.source;
-    const result = { source, name: providers[source]?.name, tokensPerExp: tuning.tokensPerExp[source], hp: null };
+    const result = { source, name: providers[source]?.name, tokensPerExp: tuning.tokensPerExp[source], hp: null, weekly: null };
     if (!limits) return result;
-    const window = limits.windows.find(item => item.windowMinutes === tuning.hpWindowMinutes) || limits.windows[0];
-    // The log only changes while the tool is used, so an elapsed window means a full bar.
-    const expired = window.resetsAt !== undefined && window.resetsAt <= now();
-    const used = expired ? 0 : Math.max(0, Math.min(100, window.usedPercent));
-    result.hp = { remaining: Math.round(100 - used), resetsAt: expired ? undefined : window.resetsAt, windowMinutes: window.windowMinutes };
+    const snapshot = window => {
+      if (!window) return null;
+      const expired = window.resetsAt !== undefined && window.resetsAt <= now();
+      const used = expired ? 0 : Math.max(0, Math.min(100, window.usedPercent));
+      // Any positive remainder stays visible; rounding must not imply exhaustion.
+      return { remaining: Math.ceil(100 - used), resetsAt: expired ? undefined : window.resetsAt,
+        windowMinutes: window.windowMinutes, exhausted: used >= 100, estimated: expired };
+    };
+    // A weekly-only snapshot must never be presented as five-hour HP.
+    result.hp = snapshot(limits.windows.find(item => item.windowMinutes === tuning.hpWindowMinutes));
+    result.weekly = snapshot(limits.windows.find(item => item.windowMinutes === 7 * 24 * 60));
+    result.observedAt = limits.time;
     return result;
   }
 
@@ -70,8 +80,19 @@ function createUsageSync({ directory, providers, progress, now = Date.now, onGro
     if (text !== lastStatus) { lastStatus = text; onStatus(next); }
   }
 
+  function acceptLimits(next) {
+    if (!next) return;
+    const windows = new Map((limits?.windows || []).map(window => [window.windowMinutes, window]));
+    for (const window of next.windows) {
+      const previous = windows.get(window.windowMinutes);
+      if (!previous || next.time >= previous.observedAt) windows.set(window.windowMinutes, { ...window, observedAt: next.time });
+    }
+    // A short-window-only update must not erase a known exhausted weekly window.
+    limits = { time: Math.max(limits?.time || 0, next.time), windows: [...windows.values()] };
+  }
+
   function accept(parsed) {
-    if (parsed?.limits && (!limits || parsed.limits.time >= limits.time)) limits = parsed.limits;
+    acceptLimits(parsed?.limits);
     const usage = parsed?.usage;
     if (!usage) return;
     const known = merged.get(usage.id);
@@ -92,7 +113,7 @@ function createUsageSync({ directory, providers, progress, now = Date.now, onGro
       try {
         await new LogTail(log.file, Math.max(0, log.size - LIMITS_TAIL_BYTES)).read(log.size, line => {
           const parsed = parse(line);
-          if (parsed?.limits && (!limits || parsed.limits.time >= limits.time)) limits = parsed.limits;
+          acceptLimits(parsed?.limits);
         });
       } catch { /* An unreadable log only means no HP yet. */ }
     }
@@ -174,9 +195,7 @@ function createUsageSync({ directory, providers, progress, now = Date.now, onGro
       return status();
     }),
     start() {
-      void enqueue(async () => {
-        if (providers[state.source]) await primeLimits(providers[state.source]);
-      }).then(() => this.poll()).catch(error => console.error('Usage sync:', error.message));
+      void this.poll().catch(error => console.error('Usage sync:', error.message));
       timer = setInterval(() => {
         // A slow first read of large logs must not pile up further polls behind it.
         if (busy) return;
