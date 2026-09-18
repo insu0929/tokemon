@@ -8,6 +8,8 @@
 
 ### Windows 실행 파일
 
+v0.5.0 빌드 결과는 `dist/Tokemon-0.5.0-win-x64.exe`이며 [최신 릴리스](https://github.com/insu0929/tokemon/releases/latest)에서 받을 수 있습니다. 151종 이미지·울음소리를 포함하며, 별도 임시 프로필로 실제 실행 파일의 전체 리소스 디코딩과 오프라인 동작 검사를 통과했습니다.
+
 v0.3.0 빌드 결과는 `dist/Tokemon-0.3.0-win-x64.exe`입니다. Windows x64용이며 Node.js 설치가 필요 없습니다. 두 몬스터의 이미지와 울음소리, 레벨업·진화 효과음을 포함합니다. 위치와 성장 기록은 `%APPDATA%/Tokemon`에 저장합니다.
 
 v0.3.0은 빌드 PC에서 포터블 exe를 네트워크 없이 실행하는 검사(`node scripts/packaged-smoke.cjs`)를 통과했으며 [최신 릴리스](https://github.com/insu0929/tokemon/releases/latest)에서 받을 수 있습니다. v0.2.0은 당시 빌드 PC의 Windows Application Control 정책으로 exe 실행이 차단되어 배포 검증을 하지 못했고, 정식 릴리스하지 않았습니다.
