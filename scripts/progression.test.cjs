@@ -12,7 +12,7 @@ test('level/evolution boundaries and excess experience', () => {
   assert.equal(demo(9999).level, 1);
   assert.equal(demo(10000).level, 2);
   assert.equal(demo(39999).species, 'pikachu');
-  assert.equal(demo(40000).species, 'raichu');
+  assert.equal(demo(40000).species, 'pikachu');
   assert.equal(demo(52345).exp, 23);
   assert.equal(demo(1000000).level, 101);
 });
@@ -22,7 +22,7 @@ test('serial writes, token remainder, invalid input and restart persistence', as
   await Promise.all([store.add(99), store.add(1), store.add(39900)]);
   assert.equal((await store.get()).totalExp, 400);
   for (const input of [-1, 0, 1.5, NaN, Infinity, '100', 1000001]) await assert.rejects(store.add(input));
-  assert.equal((await createProgression(dir).get()).species, 'raichu');
+  assert.equal((await createProgression(dir).get()).species, 'pikachu');
   await store.add(100);
   assert.equal((await store.get()).exp, 1);
 });
@@ -43,7 +43,7 @@ test('reset restores Pikachu, preserves backup and serializes later additions', 
   assert.equal(reset.species, 'pikachu');
   assert.equal(reset.level, 1);
   assert.equal(reset.totalExp, 0);
-  assert.equal(JSON.parse(await fs.readFile(path.join(dir, 'progress-before-reset.json'), 'utf8')).points, pointsFor('demo', 40000));
+  assert.equal(JSON.parse(await fs.readFile(path.join(dir, 'progress-before-reset.json'), 'utf8')).records.pikachu, pointsFor('demo', 40000));
   assert.equal((await createProgression(dir).get()).points, 0);
   await Promise.all([store.add(40000), store.reset(), store.add(100)]);
   assert.equal((await store.get()).totalExp, 1);
@@ -55,9 +55,61 @@ test('linked sources use their own rate on the same monster, and version 1 saves
   const store = createProgression(dir);
   assert.equal((await store.get()).totalExp, 399, 'Version 1 tokens keep their EXP');
   assert.equal((await store.add(4999, 'claude')).species, 'pikachu', '50 demo tokens + 4,999 Claude tokens is just short of 1 EXP');
-  assert.equal((await store.add(1, 'codex')).species, 'raichu');
+  assert.equal((await store.add(1, 'codex')).species, 'pikachu');
   assert.equal((await store.add(3000000, 'claude')).level, 8, 'Linked usage may exceed the demo input limit');
   await assert.rejects(store.add(100, 'gemini'));
-  assert.equal(JSON.parse(await fs.readFile(path.join(dir, 'progress.json'), 'utf8')).version, 2);
+  assert.equal(JSON.parse(await fs.readFile(path.join(dir, 'progress.json'), 'utf8')).version, 3);
   assert.equal((await createProgression(dir).get()).totalExp, 700);
+});
+
+test('Kanto catalog is complete and every level evolution respects its boundary', async () => {
+  const { species } = require('../src/progression.cjs');
+  assert.deepEqual(Object.values(species).map(s => s.id), Array.from({ length: 151 }, (_, i) => i + 1));
+  for (const [kind, entry] of Object.entries(species)) {
+    assert.ok(entry.name && entry.label);
+    const sprite = await fs.readFile(path.join(__dirname, '../assets', `${kind}.gif`));
+    const cry = await fs.readFile(path.join(__dirname, '../assets', `${kind}.ogg`));
+    assert.equal(sprite.toString('ascii', 0, 3), 'GIF');
+    // The original Pikachu cry is MP3 under its legacy filename.
+    assert.ok(cry.toString('ascii', 0, 4) === 'OggS' || (cry[0] === 255 && (cry[1] & 224) === 224), kind);
+    if (entry.evolution) {
+      const boundary = (entry.evolution.level - 1) * 100 * 1000000;
+      assert.equal(snapshot(boundary - 1, kind).species, kind);
+      assert.equal(snapshot(boundary, kind).species, entry.evolution.species);
+    } else assert.equal(snapshot(pointsFor('demo', 1000000), kind).species, kind);
+  }
+  for (const kind of ['pikachu', 'eevee', 'kadabra', 'machoke', 'haunter', 'graveler']) assert.equal(species[kind].evolution, undefined);
+  assert.equal(snapshot(pointsFor('demo', 350000), 'charmander').species, 'charizard');
+});
+
+test('selection keeps separate growth, serializes usage, resets only current record and survives restart', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tokemon-selection-'));
+  const store = createProgression(dir);
+  await store.add(10000);
+  await Promise.all([store.select('bulbasaur'), store.add(150000)]);
+  assert.equal((await store.get()).species, 'ivysaur');
+  await store.select('mew');
+  await store.add(100);
+  assert.equal((await store.select('pikachu')).totalExp, 100);
+  assert.equal((await store.select('bulbasaur')).species, 'ivysaur');
+  const revision = (await store.get()).revision;
+  await store.reset();
+  assert.ok((await store.get()).revision > revision);
+  assert.equal((await store.get()).species, 'bulbasaur');
+  assert.equal((await store.select('mew')).totalExp, 1);
+  assert.equal((await createProgression(dir).get()).species, 'mew');
+  for (const kind of ['__proto__', 'missing', 151, null]) await assert.rejects(store.select(kind));
+});
+
+test('legacy evolved Raichu keeps both form and EXP without re-enabling stone evolution', async () => {
+  for (const saved of [{ version: 1, totalTokens: 52345 }, { version: 2, points: pointsFor('demo', 52345) }]) {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tokemon-legacy-'));
+    await fs.writeFile(path.join(dir, 'progress.json'), JSON.stringify(saved));
+    const store = createProgression(dir);
+    assert.equal((await store.get()).species, 'raichu');
+    assert.equal((await store.get()).totalExp, 523);
+    await store.select('pikachu');
+    assert.equal((await store.add(1000000)).species, 'pikachu');
+    assert.equal((await store.select('raichu')).totalExp, 523);
+  }
 });
