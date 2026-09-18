@@ -53,7 +53,7 @@ function getAssets(kind = 'pikachu') {
   if (!assetPromises.has(kind)) assetPromises.set(kind, Promise.all([
     cachedAsset(`${kind}.gif`, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${id}.gif`, 'image/gif'),
     cachedAsset(`${kind}.ogg`, `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`, 'audio/ogg'),
-  ]).then(([sprite, cry]) => ({ sprite, cry })).catch(error => {
+  ]).then(([sprite, cry]) => ({ sprite, cry, ...species[kind], evolutionName: species[species[kind].evolution?.species]?.name })).catch(error => {
     assetPromises.delete(kind);
     console.error(error.message);
     throw new Error('이미지·소리를 받지 못했어요. 인터넷 연결 후 다시 눌러 주세요.');
@@ -139,6 +139,11 @@ else {
       return { level: `data:audio/wav;base64,${level.toString('base64')}`, fanfare: `data:audio/mpeg;base64,${fanfare.toString('base64')}`, evolution: `data:audio/mpeg;base64,${evolution.toString('base64')}`, success: `data:audio/mpeg;base64,${success.toString('base64')}` };
     });
     ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
+    ipcMain.handle('select-species', async (event, kind) => {
+      if (!trusted(event)) return;
+      await getAssets(kind);
+      return progress.select(kind);
+    });
     ipcMain.handle('preview-tokens', (event, tokens) => {
       if (!trusted(event)) return;
       // Typed tokens are a demo; they must not mix into growth earned from real usage.
@@ -161,13 +166,20 @@ else {
       Menu.buildFromTemplate([
         { label: 'Tokemon · 드래그로 이동 / 클릭하면 울음소리', enabled: false },
         { type: 'separator' },
+        { label: '포켓몬 선택 · 1세대', submenu: Array.from({ length: 8 }, (_, group) => ({
+          label: `#${String(group * 20 + 1).padStart(3, '0')}–#${String(Math.min(151, (group + 1) * 20)).padStart(3, '0')}`,
+          submenu: Object.entries(species).slice(group * 20, (group + 1) * 20).map(([kind, entry]) => ({
+            label: `#${String(entry.id).padStart(3, '0')} ${entry.name}`,
+            click: () => pet.webContents.send('select-species-request', kind),
+          })),
+        })) },
         { label: '음소거', type: 'checkbox', checked: muted, click: item => { muted = item.checked; pet.webContents.send('mute', muted); } },
         { label: '사용량 연동', submenu: [['demo', '체험 (수동 입력)'], ['claude', 'Claude'], ['codex', 'Codex']].map(([source, label]) => ({
           label, type: 'radio', checked: usageStatus.source === source,
           click: () => { usage.select(source).catch(error => console.error('Usage source:', error.message)); },
         })) },
         { label: '위치 초기화', click: () => { const p = homePosition(); pet.setPosition(p.x, p.y); void savePosition(); } },
-        { label: '성장 초기화 · Lv.1 피카츄로', click: () => pet.webContents.send('reset-progress-request') },
+        { label: '현재 선택한 포켓몬 성장 초기화 · Lv.1', click: () => pet.webContents.send('reset-progress-request') },
         { label: '종료', click: () => app.quit() },
       ]).popup({ window: pet });
     });

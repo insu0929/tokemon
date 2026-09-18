@@ -27,6 +27,7 @@ let muted = false;
 let statusTimer;
 let growth;
 let displayedSpecies;
+let displayedInfo;
 let evolving = false;
 let addingTokens = false;
 let usage = { source: 'demo', hp: null };
@@ -52,7 +53,7 @@ function refreshPetPresentation() {
   document.body.classList.toggle('limit-exhausted', wantsRest());
   document.querySelector('#state-label').textContent = resting ? '볼에서 휴식 중' : profiles[state].label;
   if (resting) button.setAttribute('aria-label', '사용 한도 소진 · 포켓볼에서 휴식 중. 드래그로 이동');
-  else if (displayedSpecies) button.setAttribute('aria-label', `${displayedSpecies === 'raichu' ? '라이츄' : '피카츄'}: 클릭하면 울음소리, 드래그하면 이동`);
+  else if (displayedInfo) button.setAttribute('aria-label', `${displayedInfo.name}: 클릭하면 울음소리, 드래그하면 이동`);
 }
 
 // Usage can arrive during evolution, loading or another recall. Reconcile only after
@@ -80,7 +81,7 @@ const spriteAnchors = {
   raichu: { x: 44.5, feet: 72 },
 };
 function alignSprite(canvas, kind) {
-  const anchor = spriteAnchors[kind];
+  const anchor = spriteAnchors[kind] || canvas.spriteAnchor || { x: canvas.width / 2, feet: canvas.height };
   const scale = 144 / Math.max(canvas.width, canvas.height);
   const x = 72 - ((144 - canvas.width * scale) / 2 + anchor.x * scale);
   const y = 136 - ((144 - canvas.height * scale) / 2 + anchor.feet * scale);
@@ -89,14 +90,13 @@ function alignSprite(canvas, kind) {
 }
 
 function renderGrowth() {
-  const isRaichu = displayedSpecies === 'raichu';
-  const name = isRaichu ? '라이츄' : '피카츄';
-  document.querySelector('#species-label').textContent = isRaichu ? 'RAICHU' : 'PIKACHU';
+  const name = displayedInfo.name;
+  document.querySelector('#species-label').textContent = displayedInfo.label;
   document.querySelector('#level').textContent = `Lv.${growth.level}`;
   document.querySelector('#exp-value').textContent = `${growth.exp} / ${growth.nextExp}`;
   document.querySelector('.exp-fill').style.width = `${growth.exp / growth.nextExp * 100}%`;
   document.querySelector('.exp-track').setAttribute('aria-valuenow', growth.exp);
-  document.querySelector('#evolution-hint').textContent = isRaichu ? '라이츄 · 진화 완료!' : `Lv.${growth.evolutionLevel} → 라이츄`;
+  document.querySelector('#evolution-hint').textContent = displayedInfo.evolution ? `Lv.${displayedInfo.evolution.level} → ${displayedInfo.evolutionName}` : `${name} · 레벨 진화 없음`;
   button.setAttribute('aria-label', `${name}: 클릭하면 울음소리, 드래그하면 이동`);
   document.title = `Tokemon · ${name}`;
   refreshPetPresentation();
@@ -111,6 +111,7 @@ async function setSpecies(kind) {
   cry.src = assets.cry;
   cry.load();
   displayedSpecies = kind;
+  displayedInfo = assets;
   const fittedWidth = 144 * Math.min(1, sprite.width / sprite.height);
   document.documentElement.style.setProperty('--monster-width', `${Math.max(128, Math.round(fittedWidth))}px`);
   player.setSpeed(evolving || recall.hidden ? 0 : profiles[state].speed);
@@ -145,38 +146,41 @@ async function grow(request, describe) {
       await growthAudio.levelUp();
     }
     if (displayedSpecies !== growth.species) {
-      evolving = true;
-      player.index = 0;
-      player.setSpeed(0);
-      clearTimeout(transitionTimer);
-      cry.pause();
-      message('어라? 피카츄의 모습이…!');
-      const evolvedAssets = await window.pet.assets(growth.species);
-      await previewPlayer.load(evolvedAssets.sprite);
-      alignSprite(evolutionPreview, growth.species);
-      previewPlayer.setSpeed(0);
-      // Each cue follows the actual clip ending, with no fixed silent gaps.
-      await evolutionCry();
-      document.body.classList.add('evolving');
-      alternatingTimer = setTimeout(() => {
-        evolutionPreview.hidden = false;
-        document.body.classList.add('evolution-alternating');
-      }, ALTERNATING_CUE_MS);
-      const silhouette = new Promise((resolve, reject) => {
-        silhouetteTimer = setTimeout(() => {
-          // Hide all sprite colours before loading the evolved animation.
-          document.body.classList.add('evolution-silhouette');
-          document.body.classList.remove('evolution-alternating');
-          evolutionPreview.hidden = true;
-          setSpecies(growth.species).then(resolve, reject);
-        }, SILHOUETTE_CUE_MS);
-      });
-      await Promise.all([growthAudio.startEvolution(), silhouette]);
-      document.body.classList.remove('evolving', 'evolution-silhouette');
-      renderGrowth();
-      await evolutionCry();
-      message('축하해요! 라이츄로 진화했어요!', 6500);
-      await growthAudio.evolutionSuccess();
+      while (displayedSpecies !== growth.species) {
+        const target = displayedInfo.evolution?.species || growth.species;
+        evolving = true;
+        player.index = 0;
+        player.setSpeed(0);
+        clearTimeout(transitionTimer);
+        cry.pause();
+        message(`어라? ${displayedInfo.name}의 모습이…!`);
+        const evolvedAssets = await window.pet.assets(target);
+        await previewPlayer.load(evolvedAssets.sprite);
+        alignSprite(evolutionPreview, target);
+        previewPlayer.setSpeed(0);
+        // Each cue follows the actual clip ending, with no fixed silent gaps.
+        await evolutionCry();
+        document.body.classList.add('evolving');
+        alternatingTimer = setTimeout(() => {
+          evolutionPreview.hidden = false;
+          document.body.classList.add('evolution-alternating');
+        }, ALTERNATING_CUE_MS);
+        const silhouette = new Promise((resolve, reject) => {
+          silhouetteTimer = setTimeout(() => {
+            // Hide all sprite colours before loading the evolved animation.
+            document.body.classList.add('evolution-silhouette');
+            document.body.classList.remove('evolution-alternating');
+            evolutionPreview.hidden = true;
+            setSpecies(target).then(resolve, reject);
+          }, SILHOUETTE_CUE_MS);
+        });
+        await Promise.all([growthAudio.startEvolution(), silhouette]);
+        document.body.classList.remove('evolving', 'evolution-silhouette');
+        renderGrowth();
+        await evolutionCry();
+        message(`축하해요! ${displayedInfo.name}(으)로 진화했어요!`, 6500);
+        await growthAudio.evolutionSuccess();
+      }
     } else {
       renderGrowth();
       const text = growth.level > previous.level ? `레벨 업! Lv.${previous.level} → Lv.${growth.level}` : describe(growth.totalExp - previous.totalExp);
@@ -203,6 +207,7 @@ async function grow(request, describe) {
 
 // Main has already saved linked usage; this only shows the newest snapshot.
 function showUsage(update) {
+  if (growth && update.growth.revision <= growth.revision) return;
   const tokens = update.tokens + (pendingUsage?.tokens ?? 0);
   pendingUsage = { ...update, tokens };
   flushUsage();
@@ -211,6 +216,7 @@ function flushUsage() {
   if (!pendingUsage || addingTokens || recall.busy || !ready) return;
   const { growth: next, tokens, name } = pendingUsage;
   pendingUsage = undefined;
+  if (next.starter !== growth.starter || next.revision <= growth.revision) return;
   // Small gains within the same EXP stay quiet instead of interrupting every few seconds.
   void grow(async () => next, gained => (gained > 0 ? `+${gained} EXP · ${name} ${tokens.toLocaleString()} 토큰` : ''));
 }
@@ -294,7 +300,7 @@ async function resetGrowth() {
     await setSpecies(growth.species);
     renderGrowth();
     ready = true;
-    message(usage.source === 'demo' ? 'Lv.1 피카츄로 초기화했어요! 40,000토큰을 추가하면 진화해요.' : 'Lv.1 피카츄로 초기화했어요!', 5000);
+    message(`Lv.1 ${displayedInfo.name}(으)로 초기화했어요!`, 5000);
   } catch {
     ready = false;
     message('초기화하지 못했어요. 몬스터를 눌러 다시 불러와 주세요.');
@@ -306,6 +312,32 @@ async function resetGrowth() {
   }
 }
 window.pet.onResetProgress(() => { void resetGrowth(); });
+async function selectSpecies(kind) {
+  if (addingTokens || loading || recall.busy || !ready) {
+    message('진행 중인 동작이 끝난 뒤 다시 선택해 주세요.', 2500);
+    return;
+  }
+  addingTokens = true;
+  tokenAdd.disabled = true;
+  clearTimeout(transitionTimer);
+  ++voiceId;
+  cry.pause();
+  try {
+    growth = await window.pet.selectSpecies(kind);
+    await setSpecies(growth.species);
+    renderGrowth();
+    message(`${displayedInfo.name}와 함께해요!`, 3000);
+  } catch {
+    ready = false;
+    message('포켓몬을 불러오지 못했어요. 눌러서 다시 시도해 주세요.');
+  } finally {
+    addingTokens = false;
+    tokenAdd.disabled = !ready;
+    void reconcileRest();
+    flushUsage();
+  }
+}
+window.pet.onSelectSpecies(kind => { void selectSpecies(kind); });
 
 function message(text, duration = 0) {
   clearTimeout(statusTimer);
@@ -316,7 +348,7 @@ function message(text, duration = 0) {
 async function load() {
   if (loading) return;
   loading = true;
-  message('피카츄를 데려오는 중…');
+  message('포켓몬을 데려오는 중…');
   try {
     growth = await window.pet.progress();
     await setSpecies(growth.species);
@@ -360,7 +392,7 @@ async function speak(transition = false) {
     button.classList.remove('speaking');
     void button.offsetWidth;
     button.classList.add('speaking');
-    message(growth?.species === 'raichu' && state !== 'fainted' ? '라이~ 라이츄!' : profile.text, 1600);
+    message(state === 'fainted' ? profile.text : displayedSpecies === 'pikachu' ? profile.text : `${displayedInfo.name}${state === 'weak' ? '…' : '!'}`, 1600);
   } catch (error) { if (currentVoice === voiceId && error.name !== 'AbortError') message('소리를 재생하지 못했어요. 다시 눌러 주세요.', 2500); }
 }
 
@@ -381,7 +413,7 @@ function applyRemaining(value, notify = true) {
     ++voiceId;
     if (!evolving) cry.pause();
     button.classList.remove('speaking');
-    if (notify && !evolving && !recall.hidden && !wantsRest()) message(previous === 'fainted' ? '다시 힘이 나요!' : profiles[state].text, 1600);
+    if (notify && !evolving && !recall.hidden && !wantsRest()) message(previous === 'fainted' ? '다시 힘이 나요!' : state === 'fainted' ? profiles[state].text : `${displayedInfo?.name || '포켓몬'} · ${profiles[state].label}`, 1600);
   }
   clearTimeout(transitionTimer);
   void reconcileRest();

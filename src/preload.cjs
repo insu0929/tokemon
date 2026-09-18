@@ -3,6 +3,8 @@ contextBridge.exposeInMainWorld('pet', {
   assets: kind => ipcRenderer.invoke('assets', kind),
   growthAudio: () => ipcRenderer.invoke('growth-audio'),
   progress: () => ipcRenderer.invoke('progress'),
+  selectSpecies: kind => ipcRenderer.invoke('select-species', kind),
+  onSelectSpecies: callback => ipcRenderer.on('select-species-request', (_event, kind) => callback(kind)),
   resetProgress: () => ipcRenderer.invoke('reset-progress'),
   onResetProgress: callback => ipcRenderer.on('reset-progress-request', () => callback()),
   addPreviewTokens: tokens => ipcRenderer.invoke('preview-tokens', tokens),

@@ -6,6 +6,8 @@ const http = require('node:http');
 const { spawn } = require('node:child_process');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
+const catalog = require('../src/species.json');
+const { snapshot } = require('../src/progression.cjs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 let browser, socket, server;
 const pending = new Map();
@@ -25,20 +27,27 @@ function send(method, params = {}) {
   const profile = await fs.mkdtemp(path.join(data, 'browser-recall-'));
   const asset = async (file, mime) => `data:${mime};base64,${(await fs.readFile(path.join(root, 'assets', file))).toString('base64')}`;
   const species = {};
-  for (const name of ['pikachu', 'raichu']) species[name] = { sprite: await asset(`${name}.gif`, 'image/gif'), cry: await asset(`${name}.ogg`, 'audio/ogg') };
+  for (const [name, entry] of Object.entries(catalog)) species[name] = { ...entry, evolutionName: catalog[entry.evolution?.species]?.name, sprite: await asset(`${name}.gif`, 'image/gif'), cry: await asset(`${name}.ogg`, 'audio/ogg') };
   const audio = { level: await asset('audio/level-up.wav', 'audio/wav'), fanfare: await asset('audio/level-up-fanfare.mp3', 'audio/mpeg'), evolution: await asset('audio/evolution.mp3', 'audio/mpeg'), success: await asset('audio/evolution-success.mp3', 'audio/mpeg') };
   const bridge = `
     window.testGeneration = Math.random();
     const testSpecies = ${JSON.stringify(species)}, testAudio = ${JSON.stringify(audio)};
     window.testStatus = JSON.parse(localStorage.getItem('limits') || 'null') || { source: 'demo', hp: null, weekly: null };
-    const snap = totalExp => ({ totalExp, level: 1 + Math.floor(totalExp / 100), exp: totalExp % 100, nextExp: 100, evolutionLevel: 5, species: totalExp >= 400 ? 'raichu' : 'pikachu' });
-    window.testGrowth = snap(Number(localStorage.getItem('exp') || 0));
+    const species = ${JSON.stringify(catalog)}, EXP_PER_LEVEL = 100, POINTS_PER_EXP = 1000000;
+    const snapshot = ${snapshot.toString()};
+    let selected = localStorage.getItem('selected') || 'pikachu', revision = 0;
+    const records = JSON.parse(localStorage.getItem('records') || '{}');
+    const snap = () => snapshot(records[selected] || 0, selected, ++revision);
+    const save = () => { localStorage.setItem('selected', selected); localStorage.setItem('records', JSON.stringify(records)); };
+    window.testGrowth = snap();
     const events = {};
     window.pet = {
       assets: async name => testSpecies[name || 'pikachu'], growthAudio: async () => testAudio,
       progress: async () => testGrowth, usageStatus: async () => testStatus,
-      addPreviewTokens: async tokens => { testGrowth = snap(testGrowth.totalExp + tokens / 100); localStorage.setItem('exp', testGrowth.totalExp); return testGrowth; },
-      resetProgress: async () => { localStorage.setItem('exp', 0); return testGrowth = snap(0); },
+      selectSpecies: async kind => { selected = kind; save(); return testGrowth = snap(); },
+      onSelectSpecies: fn => events.select = fn,
+      addPreviewTokens: async tokens => { records[selected] = (records[selected] || 0) + tokens * 10000; save(); return testGrowth = snap(); },
+      resetProgress: async () => { records[selected] = 0; save(); return testGrowth = snap(); },
       onUsageStatus: fn => events.status = fn, onUsageGrowth: fn => events.growth = fn,
       onResetProgress: fn => events.reset = fn, onMute: fn => events.mute = fn,
       startDrag() {}, endDrag: async () => false, cancelDrag() {}, menu() {},
@@ -99,6 +108,32 @@ function send(method, params = {}) {
   await send('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/` });
   await wait('typeof ready !== "undefined" && ready');
   await evaluate('testMute()');
+  // Decode every bundled animation and cry; exercise the actual selection UI handler.
+  await evaluate(`window.catalogSheet = document.createElement('canvas'); catalogSheet.width = 1200; catalogSheet.height = 16 * 180;
+    window.sheetContext = catalogSheet.getContext('2d'); sheetContext.fillStyle = '#edf2e6'; sheetContext.fillRect(0, 0, 1200, 2880);
+    window.audioProbe = new AudioContext();`);
+  let index = 0;
+  for (const [kind, entry] of Object.entries(catalog)) {
+    const result = await evaluate(`(async () => {
+      await selectSpecies(${JSON.stringify(kind)});
+      const bytes = Uint8Array.from(atob(cry.src.split(',')[1]), c => c.charCodeAt(0));
+      const audio = await audioProbe.decodeAudioData(bytes.buffer);
+      const x = ${index % 10} * 120, y = ${Math.floor(index / 10)} * 180;
+      sheetContext.fillStyle = '#263023'; sheetContext.font = '12px sans-serif'; sheetContext.fillText(${JSON.stringify(`#${entry.id} ${entry.name}`)}, x + 4, y + 15);
+      const scale = 100 / Math.max(sprite.width, sprite.height);
+      sheetContext.imageSmoothingEnabled = false;
+      sheetContext.drawImage(sprite, x + (120 - sprite.width * scale) / 2, y + 130 - sprite.height * scale, sprite.width * scale, sprite.height * scale);
+      return { kind: displayedSpecies, ready, frames: player.frames.length, audio: audio.duration, anchor: sprite.style.translate, label: document.querySelector('#species-label').textContent };
+    })()`);
+    assert.equal(result.kind, kind);
+    assert.equal(result.ready, true);
+    assert.ok(result.frames > 0 && result.audio > 0 && !result.anchor.includes('NaN'), kind);
+    assert.equal(result.label, entry.label);
+    index++;
+  }
+  await fs.writeFile(path.join(data, 'kanto-catalog.png'), Buffer.from((await evaluate('catalogSheet.toDataURL()')).split(',')[1], 'base64'));
+  await evaluate("audioProbe.close(); selectSpecies('pikachu')");
+  console.log('PASS: all 151 selections, GIF decoding, cry decoding, names and sprite anchors');
   await update(status(75));
   await delay(500);
   await shot('dual-hp');
@@ -129,17 +164,22 @@ function send(method, params = {}) {
 
   // Exercise a real evolution; weekly exhaustion must wait for its full sequence.
   await update({ source: 'demo', hp: null, weekly: null });
-  await evaluate('void addTokens(40000)');
+  await evaluate("selectSpecies('caterpie')");
+  await evaluate('void addTokens(60000)');
   await wait('evolving');
   await update(status(100));
   assert.equal(await evaluate('recall.phase'), 'out');
   await wait('document.body.classList.contains("evolution-alternating")');
   assert.equal(await evaluate('recall.phase'), 'out');
   await wait('recall.phase === "resting"');
-  assert.equal(await evaluate('displayedSpecies'), 'raichu');
+  assert.equal(await evaluate('displayedSpecies'), 'metapod');
   await shot('raichu-rest');
   await update(status(0));
   await wait('recall.phase === "out"');
+  await evaluate("selectSpecies('pikachu')");
+  assert.equal(await evaluate('growth.totalExp'), 0, 'Switching restores separate progress');
+  await evaluate("selectSpecies('caterpie')");
+  assert.equal(await evaluate('displayedSpecies'), 'metapod');
   await shot('raichu-return');
   await update(status(100));
   await delay(250);
@@ -158,6 +198,18 @@ function send(method, params = {}) {
   await update(status(0));
   await wait('recall.phase === "out"');
   assert.deepEqual(errors, [], 'No renderer exceptions');
+  await update({ source: 'demo', hp: null, weekly: null });
+  await evaluate("selectSpecies('caterpie')");
+  await evaluate('resetGrowth()');
+  await evaluate(`window.evolvedForms = []; const originalSetSpecies = setSpecies;
+    setSpecies = async kind => { await originalSetSpecies(kind); evolvedForms.push(kind); };
+    void addTokens(90000);`);
+  await wait("evolvedForms.includes('metapod')");
+  await wait("evolvedForms.includes('butterfree')");
+  await wait('!addingTokens');
+  assert.deepEqual(await evaluate('evolvedForms'), ['metapod', 'butterfree'], 'Large EXP gain animates both evolution stages in order');
+  assert.equal(await evaluate('growth.level'), 10);
+  assert.deepEqual(errors, [], 'No renderer exceptions after chained evolution');
   console.log('PASS: real renderer dual HP, recall/light/absorb, slow wiggle, silent rest, reload, release, full evolution sequencing, both species, source cancellation, mid-animation updates, reduced motion and layout');
   console.log(`Screenshots: ${data}/recall-*.png`);
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {

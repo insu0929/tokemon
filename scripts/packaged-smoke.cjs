@@ -2,19 +2,22 @@
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const catalog = require('../src/species.json');
 const { version } = require('../package.json');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const port = 19387;
+const profile = fs.mkdtempSync(path.resolve('.local/packaged-kanto-'));
 const child = spawn(path.resolve(`dist/Tokemon-${version}-win-x64.exe`), [
-  `--remote-debugging-port=${port}`, '--host-resolver-rules=MAP * ~NOTFOUND',
-], { stdio: 'ignore' });
+  `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--host-resolver-rules=MAP * ~NOTFOUND',
+], { stdio: 'ignore', windowsHide: true });
 let socket;
 let id = 0;
 const pending = new Map();
 function send(method, params = {}) {
   return new Promise((resolve, reject) => {
     const key = ++id;
-    const timer = setTimeout(() => { pending.delete(key); reject(new Error(`${method} timed out`)); }, 10000);
+    const timer = setTimeout(() => { pending.delete(key); reject(new Error(`${method} timed out`)); }, 60000);
     pending.set(key, message => { clearTimeout(timer); message.error ? reject(new Error(JSON.stringify(message.error))) : resolve(message.result); });
     socket.send(JSON.stringify({ id: key, method, params }));
   });
@@ -53,10 +56,20 @@ function send(method, params = {}) {
       await probe.load(raichu.sprite);
       if (probe.frames.length < 2 || !raichu.cry.startsWith('data:audio/ogg')) throw new Error('Raichu assets missing');
       probe.dispose();
+      const audioContext = new AudioContext();
+      for (const kind of ${JSON.stringify(Object.keys(catalog))}) {
+        const bundled = await window.pet.assets(kind);
+        await probe.load(bundled.sprite);
+        if (!probe.frames.length || !bundled.name) throw new Error(kind + ': missing sprite or metadata');
+        const bytes = Uint8Array.from(atob(bundled.cry.split(',')[1]), c => c.charCodeAt(0));
+        if (!(await audioContext.decodeAudioData(bytes.buffer)).duration) throw new Error(kind + ': missing cry');
+        probe.dispose();
+      }
+      await audioContext.close();
       const audio = await window.pet.growthAudio();
       if (!audio.level.startsWith('data:audio/wav') || ![audio.fanfare, audio.evolution, audio.success].every(item => item.startsWith('data:audio/mpeg'))) throw new Error('Growth audio missing');
       if (!growth || growth.level < 1 || !document.querySelector('.exp-track')) throw new Error('EXP HUD missing');
-      return 'PASS: portable exe, both species and growth audio offline, EXP HUD, animation, faint and recovery';
+      return 'PASS: portable exe, all 151 sprites and cries decoded offline, growth audio, EXP HUD, animation, faint and recovery';
     })()`, awaitPromise: true, returnByValue: true,
   });
   assert.ok(!result.exceptionDetails, JSON.stringify(result.exceptionDetails));

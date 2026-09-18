@@ -34,6 +34,15 @@ class SpritePlayer {
     this.canvas.width = frames[0].bitmap.width;
     this.canvas.height = frames[0].bitmap.height;
     this.context.imageSmoothingEnabled = false;
+    // Use the opaque body's centre and bottom, not transparent GIF padding.
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.drawImage(frames[0].bitmap, 0, 0);
+    const pixels = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height).data;
+    let sumX = 0, count = 0, bottom = 0;
+    for (let y = 0; y < this.canvas.height; y++) for (let x = 0; x < this.canvas.width; x++) {
+      if (pixels[(y * this.canvas.width + x) * 4 + 3] > 32) { sumX += x + .5; count++; bottom = y + 1; }
+    }
+    this.canvas.spriteAnchor = { x: count ? sumX / count : this.canvas.width / 2, feet: bottom || this.canvas.height };
     this.setSpeed(this.speed);
   }
 

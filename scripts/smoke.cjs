@@ -25,6 +25,7 @@ app.whenReady().then(async () => {
   }
   assert.ok(window, 'Window exists');
   const evaluate = code => window.webContents.executeJavaScript(code, true);
+  await evaluate("selectSpecies('caterpie')");
   assert.equal(await evaluate('ready && player.frames.length > 1 && sprite.width > 0'), true, 'Animated sprite decoded');
   assert.equal(await evaluate('typeof require'), 'undefined', 'Renderer has no Node access');
   assert.equal(window.isAlwaysOnTop(), true);
@@ -111,11 +112,11 @@ app.whenReady().then(async () => {
   window.webContents.send('mute', false);
   await delay(50);
   await evaluate('window.fanfarePlays = 0; growthAudio.fanfare.addEventListener("play", () => { if (!growthAudio.level.paused) throw new Error("Overlapping level sounds"); window.fanfarePlays++; });');
-  await evaluate('addTokens(29900)');
+  await evaluate('addTokens(49900)');
   assert.equal(await evaluate('window.fanfarePlays'), 1, 'Follow-up level fanfare plays once');
   assert.equal(await evaluate('growthAudio.fanfare.duration < 1.5'), true, 'Trailing fanfare silence removed');
   assert.equal(await evaluate('window.levelPlays'), 2, 'Multiple levels use one fanfare');
-  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Before evolution threshold');
+  assert.equal(await evaluate('displayedSpecies'), 'caterpie', 'Before evolution threshold');
   await evaluate(`window.evolutionEvents = [];
     cry.addEventListener('play', () => { if (evolving) window.evolutionEvents.push({ kind: displayedSpecies, time: performance.now(), duration: cry.duration }); });
     cry.addEventListener('ended', () => { if (evolving) { const event = window.evolutionEvents.findLast(item => item.kind === displayedSpecies); if (event) { event.duration = cry.duration; event.ended = performance.now(); } } });
@@ -144,7 +145,7 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate('document.body.classList.contains("evolution-alternating")'), true, 'Alternating phase begins');
   const alternatingOffset = await evaluate('performance.now() - window.evolutionEvents.find(event => event.kind === "music").time');
   assert.ok(Math.abs(alternatingOffset - 4959) < 600, 'Alternation starts after source 8s cue');
-  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Alternation does not change active species or cry');
+  assert.equal(await evaluate('displayedSpecies'), 'caterpie', 'Alternation does not change active species or cry');
   assert.equal(await evaluate('player.index === 0 && player.timer === undefined && previewPlayer.timer === undefined'), true, 'Both forms use a stable pose during alternation');
   const previewAlignment = await evaluate('evolutionPreview.style.translate');
   const alternates = new Set();
@@ -153,7 +154,7 @@ app.whenReady().then(async () => {
     const frame = await evaluate('({ original: getComputedStyle(sprite).visibility, preview: getComputedStyle(evolutionPreview).visibility, filter: getComputedStyle(evolutionPreview).filter })');
     assert.notEqual(frame.original, frame.preview, 'Only one form is visible at a time');
     assert.ok(frame.filter.startsWith('brightness(0)'), 'Preview stays a silhouette');
-    const name = frame.original === 'visible' ? 'pikachu' : 'silhouette';
+    const name = frame.original === 'visible' ? 'caterpie' : 'silhouette';
     scaleSamples.push(await evaluate(`(() => {
       const pose = document.querySelector('#sprite-pose');
       const scale = parseFloat(getComputedStyle(pose).scale);
@@ -171,13 +172,13 @@ app.whenReady().then(async () => {
   for (const key of ['x', 'feet']) assert.ok(Math.max(...scaleSamples.map(item => item[key])) - Math.min(...scaleSamples.map(item => item[key])) < 1, 'Scaling preserves the shared body axis and foot line');
   assert.equal(await evaluate('player.index'), 0, 'Original pose does not drift while switching');
   for (let i = 0; i < 110; i++) {
-    if (await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "raichu"')) break;
+    if (await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "metapod"')) break;
     await delay(100);
   }
-  assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "raichu"'), true, 'Evolved silhouette appears during BGM');
+  assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "metapod"'), true, 'Evolved silhouette appears during BGM');
   assert.equal(await evaluate('getComputedStyle(sprite).filter'), 'brightness(0)', 'Silhouette never exposes sprite colours');
   assert.equal(await evaluate('sprite.style.translate'), previewAlignment, 'Final form keeps the exact preview alignment');
-  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'PIKACHU', 'Name is held until reveal');
+  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'CATERPIE', 'Name is held until reveal');
   const cueOffset = await evaluate('performance.now() - window.evolutionEvents.find(event => event.kind === "music").time');
   assert.ok(Math.abs(cueOffset - 8984) < 600, 'Silhouette follows source 16s cue');
   await fs.writeFile(path.join(__dirname, '..', '.local', 'evolution-silhouette.png'), (await window.webContents.capturePage()).toPNG());
@@ -189,33 +190,33 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette")'), false, 'Full appearance is revealed');
   assert.equal(await evaluate('evolutionPreview.hidden && !document.body.classList.contains("evolution-alternating")'), true, 'Alternating overlay is removed');
   const sequence = await evaluate('window.evolutionEvents');
-  assert.deepEqual(sequence.map(event => event.kind), ['pikachu', 'music', 'raichu', 'success']);
+  assert.deepEqual(sequence.map(event => event.kind), ['caterpie', 'music', 'metapod', 'success']);
   for (let i = 1; i < sequence.length; i++) {
     const previous = sequence[i - 1];
     const gap = sequence[i].time - (previous.ended ?? previous.time + previous.duration * 1000);
     assert.ok(gap > -100 && gap < 400, `${sequence[i].kind} follows previous full clip: gap ${gap}ms`);
   }
   console.log('PASS: shortened evolution, complete species cries and gap-free cue order');
-  assert.equal(await evaluate('growth.totalExp'), 400, 'Duplicate action ignored during evolution');
-  assert.equal(await evaluate('displayedSpecies'), 'raichu');
-  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'RAICHU');
-  assert.equal(await evaluate('growth.level'), 5);
-  assert.equal(await evaluate('player.frames.length > 1'), true, 'Raichu animation decoded');
+  assert.equal(await evaluate('growth.totalExp'), 600, 'Duplicate action ignored during evolution');
+  assert.equal(await evaluate('displayedSpecies'), 'metapod');
+  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'METAPOD');
+  assert.equal(await evaluate('growth.level'), 7);
+  assert.equal(await evaluate('player.frames.length > 1'), true, 'Metapod animation decoded');
   await evaluate('addTokens(12345)');
-  assert.equal(await evaluate('growth.level'), 6);
+  assert.equal(await evaluate('growth.level'), 8);
   assert.equal(await evaluate('growth.exp'), 23, 'Overflow carried into next level');
   await window.webContents.reload();
   for (let i = 0; i < 100; i++) {
     if (await evaluate('typeof ready !== "undefined" && ready').catch(() => false)) break;
     await delay(100);
   }
-  assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution restored after reload');
-  assert.equal(await evaluate('growth.totalExp'), 523, 'Progress persists');
+  assert.equal(await evaluate('displayedSpecies'), 'metapod', 'Evolution restored after reload');
+  assert.equal(await evaluate('growth.totalExp'), 723, 'Progress persists');
   assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reload does not replay growth sounds');
   await evaluate('speak()');
-  assert.equal(await evaluate('!cry.paused'), true, 'Raichu cry plays');
+  assert.equal(await evaluate('!cry.paused'), true, 'Metapod cry plays');
   await evaluate('cry.pause()');
-  await evaluate('applyRemaining(100, false); message("라이츄로 진화했어요!");');
+  await evaluate('applyRemaining(100, false); message("단데기로 진화했어요!");');
   await delay(200);
   await fs.writeFile(path.join(__dirname, '..', '.local', 'evolution.png'), (await window.webContents.capturePage()).toPNG());
   const layout = await evaluate('JSON.stringify({ bottom: document.querySelector(".preview").getBoundingClientRect().bottom, height: innerHeight, top: document.querySelector("#status").getBoundingClientRect().top })');
@@ -223,22 +224,22 @@ app.whenReady().then(async () => {
   assert.ok(bounds.bottom <= bounds.height && bounds.top >= 0, 'HUD and bubble fit in window');
   await evaluate('window.originalLevelPlay = growthAudio.level.play; growthAudio.level.play = () => Promise.reject(new Error("test playback failure")); void 0;');
   await evaluate('addTokens(10000)');
-  assert.equal(await evaluate('ready && !addingTokens && growth.level === 7'), true, 'Audio failure does not block progression');
+  assert.equal(await evaluate('ready && !addingTokens && growth.level === 9'), true, 'Audio failure does not block progression');
   await evaluate('growthAudio.level.play = window.originalLevelPlay; void 0;');
   window.webContents.send('mute', true);
   await delay(50);
   await evaluate('addTokens(10000)');
-  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused && growth.level === 8'), true, 'Muted level up still progresses silently');
+  assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused && growth.level === 10'), true, 'Muted level up still progresses silently');
   window.webContents.send('reset-progress-request');
   for (let i = 0; i < 50; i++) {
     await delay(100);
-    if (await evaluate('!addingTokens && displayedSpecies === "pikachu"')) break;
+    if (await evaluate('!addingTokens && displayedSpecies === "caterpie"')) break;
   }
-  assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Menu reset restores Pikachu');
+  assert.equal(await evaluate('displayedSpecies'), 'caterpie', 'Menu reset restores Caterpie');
   assert.equal(await evaluate('growth.level === 1 && growth.totalExp === 0'), true);
   assert.equal(await evaluate('growthAudio.level.paused && growthAudio.music.paused'), true, 'Reset stays silent');
-  await evaluate('addTokens(40000)');
-  assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Evolution can be replayed after reset');
+  await evaluate('addTokens(60000)');
+  assert.equal(await evaluate('displayedSpecies'), 'metapod', 'Evolution can be replayed after reset');
   console.log('PASS: existing features, growth audio, mute, persistence, reset and repeated evolution');
 
   const appendLog = async (file, ...entries) => {
