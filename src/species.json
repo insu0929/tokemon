@@ -1,0 +1,965 @@
+{
+  "bulbasaur": {
+    "id": 1,
+    "name": "이상해씨",
+    "label": "BULBASAUR",
+    "evolution": {
+      "level": 16,
+      "species": "ivysaur"
+    }
+  },
+  "ivysaur": {
+    "id": 2,
+    "name": "이상해풀",
+    "label": "IVYSAUR",
+    "evolution": {
+      "level": 32,
+      "species": "venusaur"
+    }
+  },
+  "venusaur": {
+    "id": 3,
+    "name": "이상해꽃",
+    "label": "VENUSAUR"
+  },
+  "charmander": {
+    "id": 4,
+    "name": "파이리",
+    "label": "CHARMANDER",
+    "evolution": {
+      "level": 16,
+      "species": "charmeleon"
+    }
+  },
+  "charmeleon": {
+    "id": 5,
+    "name": "리자드",
+    "label": "CHARMELEON",
+    "evolution": {
+      "level": 36,
+      "species": "charizard"
+    }
+  },
+  "charizard": {
+    "id": 6,
+    "name": "리자몽",
+    "label": "CHARIZARD"
+  },
+  "squirtle": {
+    "id": 7,
+    "name": "꼬부기",
+    "label": "SQUIRTLE",
+    "evolution": {
+      "level": 16,
+      "species": "wartortle"
+    }
+  },
+  "wartortle": {
+    "id": 8,
+    "name": "어니부기",
+    "label": "WARTORTLE",
+    "evolution": {
+      "level": 36,
+      "species": "blastoise"
+    }
+  },
+  "blastoise": {
+    "id": 9,
+    "name": "거북왕",
+    "label": "BLASTOISE"
+  },
+  "caterpie": {
+    "id": 10,
+    "name": "캐터피",
+    "label": "CATERPIE",
+    "evolution": {
+      "level": 7,
+      "species": "metapod"
+    }
+  },
+  "metapod": {
+    "id": 11,
+    "name": "단데기",
+    "label": "METAPOD",
+    "evolution": {
+      "level": 10,
+      "species": "butterfree"
+    }
+  },
+  "butterfree": {
+    "id": 12,
+    "name": "버터플",
+    "label": "BUTTERFREE"
+  },
+  "weedle": {
+    "id": 13,
+    "name": "뿔충이",
+    "label": "WEEDLE",
+    "evolution": {
+      "level": 7,
+      "species": "kakuna"
+    }
+  },
+  "kakuna": {
+    "id": 14,
+    "name": "딱충이",
+    "label": "KAKUNA",
+    "evolution": {
+      "level": 10,
+      "species": "beedrill"
+    }
+  },
+  "beedrill": {
+    "id": 15,
+    "name": "독침붕",
+    "label": "BEEDRILL"
+  },
+  "pidgey": {
+    "id": 16,
+    "name": "구구",
+    "label": "PIDGEY",
+    "evolution": {
+      "level": 18,
+      "species": "pidgeotto"
+    }
+  },
+  "pidgeotto": {
+    "id": 17,
+    "name": "피죤",
+    "label": "PIDGEOTTO",
+    "evolution": {
+      "level": 36,
+      "species": "pidgeot"
+    }
+  },
+  "pidgeot": {
+    "id": 18,
+    "name": "피죤투",
+    "label": "PIDGEOT"
+  },
+  "rattata": {
+    "id": 19,
+    "name": "꼬렛",
+    "label": "RATTATA",
+    "evolution": {
+      "level": 20,
+      "species": "raticate"
+    }
+  },
+  "raticate": {
+    "id": 20,
+    "name": "레트라",
+    "label": "RATICATE"
+  },
+  "spearow": {
+    "id": 21,
+    "name": "깨비참",
+    "label": "SPEAROW",
+    "evolution": {
+      "level": 20,
+      "species": "fearow"
+    }
+  },
+  "fearow": {
+    "id": 22,
+    "name": "깨비드릴조",
+    "label": "FEAROW"
+  },
+  "ekans": {
+    "id": 23,
+    "name": "아보",
+    "label": "EKANS",
+    "evolution": {
+      "level": 22,
+      "species": "arbok"
+    }
+  },
+  "arbok": {
+    "id": 24,
+    "name": "아보크",
+    "label": "ARBOK"
+  },
+  "pikachu": {
+    "id": 25,
+    "name": "피카츄",
+    "label": "PIKACHU"
+  },
+  "raichu": {
+    "id": 26,
+    "name": "라이츄",
+    "label": "RAICHU"
+  },
+  "sandshrew": {
+    "id": 27,
+    "name": "모래두지",
+    "label": "SANDSHREW",
+    "evolution": {
+      "level": 22,
+      "species": "sandslash"
+    }
+  },
+  "sandslash": {
+    "id": 28,
+    "name": "고지",
+    "label": "SANDSLASH"
+  },
+  "nidoran-f": {
+    "id": 29,
+    "name": "니드런♀",
+    "label": "NIDORAN♀",
+    "evolution": {
+      "level": 16,
+      "species": "nidorina"
+    }
+  },
+  "nidorina": {
+    "id": 30,
+    "name": "니드리나",
+    "label": "NIDORINA"
+  },
+  "nidoqueen": {
+    "id": 31,
+    "name": "니드퀸",
+    "label": "NIDOQUEEN"
+  },
+  "nidoran-m": {
+    "id": 32,
+    "name": "니드런♂",
+    "label": "NIDORAN♂",
+    "evolution": {
+      "level": 16,
+      "species": "nidorino"
+    }
+  },
+  "nidorino": {
+    "id": 33,
+    "name": "니드리노",
+    "label": "NIDORINO"
+  },
+  "nidoking": {
+    "id": 34,
+    "name": "니드킹",
+    "label": "NIDOKING"
+  },
+  "clefairy": {
+    "id": 35,
+    "name": "삐삐",
+    "label": "CLEFAIRY"
+  },
+  "clefable": {
+    "id": 36,
+    "name": "픽시",
+    "label": "CLEFABLE"
+  },
+  "vulpix": {
+    "id": 37,
+    "name": "식스테일",
+    "label": "VULPIX"
+  },
+  "ninetales": {
+    "id": 38,
+    "name": "나인테일",
+    "label": "NINETALES"
+  },
+  "jigglypuff": {
+    "id": 39,
+    "name": "푸린",
+    "label": "JIGGLYPUFF"
+  },
+  "wigglytuff": {
+    "id": 40,
+    "name": "푸크린",
+    "label": "WIGGLYTUFF"
+  },
+  "zubat": {
+    "id": 41,
+    "name": "주뱃",
+    "label": "ZUBAT",
+    "evolution": {
+      "level": 22,
+      "species": "golbat"
+    }
+  },
+  "golbat": {
+    "id": 42,
+    "name": "골뱃",
+    "label": "GOLBAT"
+  },
+  "oddish": {
+    "id": 43,
+    "name": "뚜벅쵸",
+    "label": "ODDISH",
+    "evolution": {
+      "level": 21,
+      "species": "gloom"
+    }
+  },
+  "gloom": {
+    "id": 44,
+    "name": "냄새꼬",
+    "label": "GLOOM"
+  },
+  "vileplume": {
+    "id": 45,
+    "name": "라플레시아",
+    "label": "VILEPLUME"
+  },
+  "paras": {
+    "id": 46,
+    "name": "파라스",
+    "label": "PARAS",
+    "evolution": {
+      "level": 24,
+      "species": "parasect"
+    }
+  },
+  "parasect": {
+    "id": 47,
+    "name": "파라섹트",
+    "label": "PARASECT"
+  },
+  "venonat": {
+    "id": 48,
+    "name": "콘팡",
+    "label": "VENONAT",
+    "evolution": {
+      "level": 31,
+      "species": "venomoth"
+    }
+  },
+  "venomoth": {
+    "id": 49,
+    "name": "도나리",
+    "label": "VENOMOTH"
+  },
+  "diglett": {
+    "id": 50,
+    "name": "디그다",
+    "label": "DIGLETT",
+    "evolution": {
+      "level": 26,
+      "species": "dugtrio"
+    }
+  },
+  "dugtrio": {
+    "id": 51,
+    "name": "닥트리오",
+    "label": "DUGTRIO"
+  },
+  "meowth": {
+    "id": 52,
+    "name": "나옹",
+    "label": "MEOWTH",
+    "evolution": {
+      "level": 28,
+      "species": "persian"
+    }
+  },
+  "persian": {
+    "id": 53,
+    "name": "페르시온",
+    "label": "PERSIAN"
+  },
+  "psyduck": {
+    "id": 54,
+    "name": "고라파덕",
+    "label": "PSYDUCK",
+    "evolution": {
+      "level": 33,
+      "species": "golduck"
+    }
+  },
+  "golduck": {
+    "id": 55,
+    "name": "골덕",
+    "label": "GOLDUCK"
+  },
+  "mankey": {
+    "id": 56,
+    "name": "망키",
+    "label": "MANKEY",
+    "evolution": {
+      "level": 28,
+      "species": "primeape"
+    }
+  },
+  "primeape": {
+    "id": 57,
+    "name": "성원숭",
+    "label": "PRIMEAPE"
+  },
+  "growlithe": {
+    "id": 58,
+    "name": "가디",
+    "label": "GROWLITHE"
+  },
+  "arcanine": {
+    "id": 59,
+    "name": "윈디",
+    "label": "ARCANINE"
+  },
+  "poliwag": {
+    "id": 60,
+    "name": "발챙이",
+    "label": "POLIWAG",
+    "evolution": {
+      "level": 25,
+      "species": "poliwhirl"
+    }
+  },
+  "poliwhirl": {
+    "id": 61,
+    "name": "슈륙챙이",
+    "label": "POLIWHIRL"
+  },
+  "poliwrath": {
+    "id": 62,
+    "name": "강챙이",
+    "label": "POLIWRATH"
+  },
+  "abra": {
+    "id": 63,
+    "name": "캐이시",
+    "label": "ABRA",
+    "evolution": {
+      "level": 16,
+      "species": "kadabra"
+    }
+  },
+  "kadabra": {
+    "id": 64,
+    "name": "윤겔라",
+    "label": "KADABRA"
+  },
+  "alakazam": {
+    "id": 65,
+    "name": "후딘",
+    "label": "ALAKAZAM"
+  },
+  "machop": {
+    "id": 66,
+    "name": "알통몬",
+    "label": "MACHOP",
+    "evolution": {
+      "level": 28,
+      "species": "machoke"
+    }
+  },
+  "machoke": {
+    "id": 67,
+    "name": "근육몬",
+    "label": "MACHOKE"
+  },
+  "machamp": {
+    "id": 68,
+    "name": "괴력몬",
+    "label": "MACHAMP"
+  },
+  "bellsprout": {
+    "id": 69,
+    "name": "모다피",
+    "label": "BELLSPROUT",
+    "evolution": {
+      "level": 21,
+      "species": "weepinbell"
+    }
+  },
+  "weepinbell": {
+    "id": 70,
+    "name": "우츠동",
+    "label": "WEEPINBELL"
+  },
+  "victreebel": {
+    "id": 71,
+    "name": "우츠보트",
+    "label": "VICTREEBEL"
+  },
+  "tentacool": {
+    "id": 72,
+    "name": "왕눈해",
+    "label": "TENTACOOL",
+    "evolution": {
+      "level": 30,
+      "species": "tentacruel"
+    }
+  },
+  "tentacruel": {
+    "id": 73,
+    "name": "독파리",
+    "label": "TENTACRUEL"
+  },
+  "geodude": {
+    "id": 74,
+    "name": "꼬마돌",
+    "label": "GEODUDE",
+    "evolution": {
+      "level": 25,
+      "species": "graveler"
+    }
+  },
+  "graveler": {
+    "id": 75,
+    "name": "데구리",
+    "label": "GRAVELER"
+  },
+  "golem": {
+    "id": 76,
+    "name": "딱구리",
+    "label": "GOLEM"
+  },
+  "ponyta": {
+    "id": 77,
+    "name": "포니타",
+    "label": "PONYTA",
+    "evolution": {
+      "level": 40,
+      "species": "rapidash"
+    }
+  },
+  "rapidash": {
+    "id": 78,
+    "name": "날쌩마",
+    "label": "RAPIDASH"
+  },
+  "slowpoke": {
+    "id": 79,
+    "name": "야돈",
+    "label": "SLOWPOKE",
+    "evolution": {
+      "level": 37,
+      "species": "slowbro"
+    }
+  },
+  "slowbro": {
+    "id": 80,
+    "name": "야도란",
+    "label": "SLOWBRO"
+  },
+  "magnemite": {
+    "id": 81,
+    "name": "코일",
+    "label": "MAGNEMITE",
+    "evolution": {
+      "level": 30,
+      "species": "magneton"
+    }
+  },
+  "magneton": {
+    "id": 82,
+    "name": "레어코일",
+    "label": "MAGNETON"
+  },
+  "farfetchd": {
+    "id": 83,
+    "name": "파오리",
+    "label": "FARFETCH’D"
+  },
+  "doduo": {
+    "id": 84,
+    "name": "두두",
+    "label": "DODUO",
+    "evolution": {
+      "level": 31,
+      "species": "dodrio"
+    }
+  },
+  "dodrio": {
+    "id": 85,
+    "name": "두트리오",
+    "label": "DODRIO"
+  },
+  "seel": {
+    "id": 86,
+    "name": "쥬쥬",
+    "label": "SEEL",
+    "evolution": {
+      "level": 34,
+      "species": "dewgong"
+    }
+  },
+  "dewgong": {
+    "id": 87,
+    "name": "쥬레곤",
+    "label": "DEWGONG"
+  },
+  "grimer": {
+    "id": 88,
+    "name": "질퍽이",
+    "label": "GRIMER",
+    "evolution": {
+      "level": 38,
+      "species": "muk"
+    }
+  },
+  "muk": {
+    "id": 89,
+    "name": "질뻐기",
+    "label": "MUK"
+  },
+  "shellder": {
+    "id": 90,
+    "name": "셀러",
+    "label": "SHELLDER"
+  },
+  "cloyster": {
+    "id": 91,
+    "name": "파르셀",
+    "label": "CLOYSTER"
+  },
+  "gastly": {
+    "id": 92,
+    "name": "고오스",
+    "label": "GASTLY",
+    "evolution": {
+      "level": 25,
+      "species": "haunter"
+    }
+  },
+  "haunter": {
+    "id": 93,
+    "name": "고우스트",
+    "label": "HAUNTER"
+  },
+  "gengar": {
+    "id": 94,
+    "name": "팬텀",
+    "label": "GENGAR"
+  },
+  "onix": {
+    "id": 95,
+    "name": "롱스톤",
+    "label": "ONIX"
+  },
+  "drowzee": {
+    "id": 96,
+    "name": "슬리프",
+    "label": "DROWZEE",
+    "evolution": {
+      "level": 26,
+      "species": "hypno"
+    }
+  },
+  "hypno": {
+    "id": 97,
+    "name": "슬리퍼",
+    "label": "HYPNO"
+  },
+  "krabby": {
+    "id": 98,
+    "name": "크랩",
+    "label": "KRABBY",
+    "evolution": {
+      "level": 28,
+      "species": "kingler"
+    }
+  },
+  "kingler": {
+    "id": 99,
+    "name": "킹크랩",
+    "label": "KINGLER"
+  },
+  "voltorb": {
+    "id": 100,
+    "name": "찌리리공",
+    "label": "VOLTORB",
+    "evolution": {
+      "level": 30,
+      "species": "electrode"
+    }
+  },
+  "electrode": {
+    "id": 101,
+    "name": "붐볼",
+    "label": "ELECTRODE"
+  },
+  "exeggcute": {
+    "id": 102,
+    "name": "아라리",
+    "label": "EXEGGCUTE"
+  },
+  "exeggutor": {
+    "id": 103,
+    "name": "나시",
+    "label": "EXEGGUTOR"
+  },
+  "cubone": {
+    "id": 104,
+    "name": "탕구리",
+    "label": "CUBONE",
+    "evolution": {
+      "level": 28,
+      "species": "marowak"
+    }
+  },
+  "marowak": {
+    "id": 105,
+    "name": "텅구리",
+    "label": "MAROWAK"
+  },
+  "hitmonlee": {
+    "id": 106,
+    "name": "시라소몬",
+    "label": "HITMONLEE"
+  },
+  "hitmonchan": {
+    "id": 107,
+    "name": "홍수몬",
+    "label": "HITMONCHAN"
+  },
+  "lickitung": {
+    "id": 108,
+    "name": "내루미",
+    "label": "LICKITUNG"
+  },
+  "koffing": {
+    "id": 109,
+    "name": "또가스",
+    "label": "KOFFING",
+    "evolution": {
+      "level": 35,
+      "species": "weezing"
+    }
+  },
+  "weezing": {
+    "id": 110,
+    "name": "또도가스",
+    "label": "WEEZING"
+  },
+  "rhyhorn": {
+    "id": 111,
+    "name": "뿔카노",
+    "label": "RHYHORN",
+    "evolution": {
+      "level": 42,
+      "species": "rhydon"
+    }
+  },
+  "rhydon": {
+    "id": 112,
+    "name": "코뿌리",
+    "label": "RHYDON"
+  },
+  "chansey": {
+    "id": 113,
+    "name": "럭키",
+    "label": "CHANSEY"
+  },
+  "tangela": {
+    "id": 114,
+    "name": "덩쿠리",
+    "label": "TANGELA"
+  },
+  "kangaskhan": {
+    "id": 115,
+    "name": "캥카",
+    "label": "KANGASKHAN"
+  },
+  "horsea": {
+    "id": 116,
+    "name": "쏘드라",
+    "label": "HORSEA",
+    "evolution": {
+      "level": 32,
+      "species": "seadra"
+    }
+  },
+  "seadra": {
+    "id": 117,
+    "name": "시드라",
+    "label": "SEADRA"
+  },
+  "goldeen": {
+    "id": 118,
+    "name": "콘치",
+    "label": "GOLDEEN",
+    "evolution": {
+      "level": 33,
+      "species": "seaking"
+    }
+  },
+  "seaking": {
+    "id": 119,
+    "name": "왕콘치",
+    "label": "SEAKING"
+  },
+  "staryu": {
+    "id": 120,
+    "name": "별가사리",
+    "label": "STARYU"
+  },
+  "starmie": {
+    "id": 121,
+    "name": "아쿠스타",
+    "label": "STARMIE"
+  },
+  "mr-mime": {
+    "id": 122,
+    "name": "마임맨",
+    "label": "MR. MIME"
+  },
+  "scyther": {
+    "id": 123,
+    "name": "스라크",
+    "label": "SCYTHER"
+  },
+  "jynx": {
+    "id": 124,
+    "name": "루주라",
+    "label": "JYNX"
+  },
+  "electabuzz": {
+    "id": 125,
+    "name": "에레브",
+    "label": "ELECTABUZZ"
+  },
+  "magmar": {
+    "id": 126,
+    "name": "마그마",
+    "label": "MAGMAR"
+  },
+  "pinsir": {
+    "id": 127,
+    "name": "쁘사이저",
+    "label": "PINSIR"
+  },
+  "tauros": {
+    "id": 128,
+    "name": "켄타로스",
+    "label": "TAUROS"
+  },
+  "magikarp": {
+    "id": 129,
+    "name": "잉어킹",
+    "label": "MAGIKARP",
+    "evolution": {
+      "level": 20,
+      "species": "gyarados"
+    }
+  },
+  "gyarados": {
+    "id": 130,
+    "name": "갸라도스",
+    "label": "GYARADOS"
+  },
+  "lapras": {
+    "id": 131,
+    "name": "라프라스",
+    "label": "LAPRAS"
+  },
+  "ditto": {
+    "id": 132,
+    "name": "메타몽",
+    "label": "DITTO"
+  },
+  "eevee": {
+    "id": 133,
+    "name": "이브이",
+    "label": "EEVEE"
+  },
+  "vaporeon": {
+    "id": 134,
+    "name": "샤미드",
+    "label": "VAPOREON"
+  },
+  "jolteon": {
+    "id": 135,
+    "name": "쥬피썬더",
+    "label": "JOLTEON"
+  },
+  "flareon": {
+    "id": 136,
+    "name": "부스터",
+    "label": "FLAREON"
+  },
+  "porygon": {
+    "id": 137,
+    "name": "폴리곤",
+    "label": "PORYGON"
+  },
+  "omanyte": {
+    "id": 138,
+    "name": "암나이트",
+    "label": "OMANYTE",
+    "evolution": {
+      "level": 40,
+      "species": "omastar"
+    }
+  },
+  "omastar": {
+    "id": 139,
+    "name": "암스타",
+    "label": "OMASTAR"
+  },
+  "kabuto": {
+    "id": 140,
+    "name": "투구",
+    "label": "KABUTO",
+    "evolution": {
+      "level": 40,
+      "species": "kabutops"
+    }
+  },
+  "kabutops": {
+    "id": 141,
+    "name": "투구푸스",
+    "label": "KABUTOPS"
+  },
+  "aerodactyl": {
+    "id": 142,
+    "name": "프테라",
+    "label": "AERODACTYL"
+  },
+  "snorlax": {
+    "id": 143,
+    "name": "잠만보",
+    "label": "SNORLAX"
+  },
+  "articuno": {
+    "id": 144,
+    "name": "프리져",
+    "label": "ARTICUNO"
+  },
+  "zapdos": {
+    "id": 145,
+    "name": "썬더",
+    "label": "ZAPDOS"
+  },
+  "moltres": {
+    "id": 146,
+    "name": "파이어",
+    "label": "MOLTRES"
+  },
+  "dratini": {
+    "id": 147,
+    "name": "미뇽",
+    "label": "DRATINI",
+    "evolution": {
+      "level": 30,
+      "species": "dragonair"
+    }
+  },
+  "dragonair": {
+    "id": 148,
+    "name": "신뇽",
+    "label": "DRAGONAIR",
+    "evolution": {
+      "level": 55,
+      "species": "dragonite"
+    }
+  },
+  "dragonite": {
+    "id": 149,
+    "name": "망나뇽",
+    "label": "DRAGONITE"
+  },
+  "mewtwo": {
+    "id": 150,
+    "name": "뮤츠",
+    "label": "MEWTWO"
+  },
+  "mew": {
+    "id": 151,
+    "name": "뮤",
+    "label": "MEW"
+  }
+}
