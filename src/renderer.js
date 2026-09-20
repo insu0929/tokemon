@@ -390,7 +390,7 @@ function applyUsage(next) {
   if (next.observedAt) health.title += `\n마지막 확인: ${new Date(next.observedAt).toLocaleString('ko-KR')}\n로그 기준이며 실제 잔여량과 차이가 날 수 있어요.`;
   health.setAttribute('aria-label', health.title);
   refreshPetPresentation();
-  if (changed && ready) message(next.source === 'demo' ? '체험 모드로 바꿨어요.' : `${next.name} 연동 시작! 지금부터 쓰는 토큰이 EXP가 돼요.`, 4500);
+  if (changed && ready) message(next.source === 'demo' ? '체험 모드로 바꿨어요.' : `${next.name} 사용 기록을 확인하고 있어요. 누적 사용량을 반영합니다.`, 4500);
   void reconcileRest();
   flushUsage();
 }
