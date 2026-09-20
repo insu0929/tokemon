@@ -69,7 +69,13 @@ function send(method, params = {}) {
       const audio = await window.pet.growthAudio();
       if (!audio.level.startsWith('data:audio/wav') || ![audio.fanfare, audio.evolution, audio.success].every(item => item.startsWith('data:audio/mpeg'))) throw new Error('Growth audio missing');
       if (!growth || growth.level < 1 || !document.querySelector('.exp-track')) throw new Error('EXP HUD missing');
-      return 'PASS: portable exe, all 151 sprites and cries decoded offline, growth audio, EXP HUD, animation, faint and recovery';
+      const images = Object.values(await window.pet.itemImages());
+      if (images.length !== 6 || growth.items.length !== 6 || !images.every(item => item.startsWith('data:image/png'))) throw new Error('Item images missing');
+      for (const source of images) await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = () => reject(new Error('Item image not decoded')); image.src = source; });
+      document.querySelector('#mute').click();
+      for (let i = 0; i < 20 && !muted; i++) await new Promise(r => setTimeout(r, 50));
+      if (!muted || document.querySelector('#mute').getAttribute('aria-pressed') !== 'true') throw new Error('Mute button failed');
+      return 'PASS: portable exe, all 151 sprites and cries decoded offline, growth audio, EXP HUD, item images, mute button, animation, faint and recovery';
     })()`, awaitPromise: true, returnByValue: true,
   });
   assert.ok(!result.exceptionDetails, JSON.stringify(result.exceptionDetails));
