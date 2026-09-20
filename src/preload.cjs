@@ -20,5 +20,6 @@ contextBridge.exposeInMainWorld('pet', {
   endDrag: () => ipcRenderer.invoke('drag-end'),
   cancelDrag: () => ipcRenderer.send('drag-cancel'),
   menu: () => ipcRenderer.send('menu'),
+  setMuted: muted => ipcRenderer.send('set-muted', muted),
   onMute: callback => ipcRenderer.on('mute', (_event, muted) => callback(muted)),
 });

@@ -184,6 +184,12 @@ else {
     });
     ipcMain.handle('drag-end', event => trusted(event) ? stopDrag() : true);
     ipcMain.on('drag-cancel', event => { if (trusted(event)) stopDrag(); });
+    // Main owns the flag so the button and the menu checkbox always agree.
+    ipcMain.on('set-muted', (event, value) => {
+      if (!trusted(event)) return;
+      muted = value === true;
+      pet.webContents.send('mute', muted);
+    });
     ipcMain.on('menu', event => {
       if (!trusted(event)) return;
       stopDrag();

@@ -504,7 +504,7 @@ async function speak(transition = false) {
   }
   if (addingTokens && !transition) return;
   if (!ready) return load();
-  if (muted) { if (!transition) message('음소거 중 · 우클릭으로 해제', 1800); return; }
+  if (muted) { if (!transition) message('음소거 중 · 스피커 버튼으로 해제', 1800); return; }
   if (state === 'fainted' && !transition) return message('쉬는 중… 잔여량을 올려 주세요', 1800);
   if (transition) cry.pause();
   if (!cry.paused) return;
@@ -575,5 +575,14 @@ button.addEventListener('keydown', event => {
   if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) { event.preventDefault(); void speak(); }
 });
 document.addEventListener('contextmenu', event => { event.preventDefault(); window.pet.menu(); });
-window.pet.onMute(value => { muted = value; growthAudio.setMuted(value); if (muted) { ++voiceId; cry.pause(); } });
+const muteButton = document.querySelector('#mute');
+muteButton.addEventListener('click', () => window.pet.setMuted(!muted));
+window.pet.onMute(value => {
+  muted = value;
+  growthAudio.setMuted(value);
+  if (muted) { ++voiceId; cry.pause(); }
+  muteButton.setAttribute('aria-pressed', String(muted));
+  muteButton.title = muted ? '음소거 해제' : '음소거';
+  muteButton.setAttribute('aria-label', muteButton.title);
+});
 void load();
