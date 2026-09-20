@@ -1,4 +1,46 @@
 :root { color-scheme: light; font-family: "Malgun Gothic", sans-serif; --monster-width: 144px; }
+.commerce-nav { display: flex; width: var(--monster-width); gap: 5px; flex-shrink: 0; }
+.commerce-nav button { flex: 1; padding: 4px; background: #fffde9; border: 1px solid #b6b394; border-radius: 5px; color: #514b35; font: bold 11px "Malgun Gothic", sans-serif; cursor: pointer; }
+#commerce { width: calc(100% - 12px); max-width: 310px; max-height: calc(100% - 16px); padding: 10px; border: 2px solid #514b35; border-radius: 10px; background: #fffde9; color: #51412a; font-size: 11px; overflow-y: auto; scrollbar-width: thin; box-shadow: 0 4px 12px #0003; }
+#commerce::backdrop { background: #25302555; }
+#commerce[open] { display: flex; flex-direction: column; height: calc(100% - 16px); }
+#commerce > :not(#item-list) { flex-shrink: 0; }
+#item-list { min-height: 0; overflow-y: auto; flex: 1; scrollbar-width: thin; }
+.commerce-header { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.commerce-header h1 { margin: 0; font-size: 16px; }
+#commerce button { font-family: inherit; cursor: pointer; border: 1px solid #b6b394; border-radius: 5px; padding: 5px; color: #51412a; background: #f4eed0; }
+#commerce button:disabled { opacity: .55; cursor: default; }
+#commerce button:focus-visible, .commerce-nav button:focus-visible { outline: 2px solid #407b9c; outline-offset: 1px; }
+#close-commerce { font-size: 18px; line-height: 1; min-width: 26px; }
+.wallet { display: flex; flex-direction: column; gap: 3px; margin: 10px 0; padding: 8px; border-radius: 6px; background: #e8edd9; }
+.wallet strong { font: bold 17px Consolas, monospace; overflow-wrap: anywhere; }
+.commerce-tabs { display: flex; gap: 4px; }
+.commerce-tabs button { flex: 1; }
+#commerce .commerce-tabs button[aria-pressed="true"] { background: #48664c; border-color: #48664c; color: white; }
+#commerce-description, #commerce-feedback { line-height: 1.5; margin: 8px 0; overflow-wrap: anywhere; }
+#commerce-feedback { color: #346642; }
+#commerce-feedback:empty { display: none; }
+.item-card { border-top: 1px solid #d9d3b7; padding: 9px 0; }
+.item-heading { display: flex; align-items: center; gap: 7px; }
+.item-heading strong { font-size: 12px; }
+.item-symbol { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 27px; flex-shrink: 0; border: 2px solid #0003; border-radius: 8px 3px 8px 3px; background: #ebd46a; color: #352e20; font-size: 9px; font-weight: bold; }
+.item-symbol[data-color="fire"] { background: #f4a075; }
+.item-symbol[data-color="water"] { background: #8eceec; }
+.item-symbol[data-color="leaf"] { background: #b2d795; }
+.item-symbol[data-color="moon"] { background: #c5badf; }
+.item-symbol[data-color="cord"] { background: #c2c9cc; border-radius: 10px; }
+.item-symbol.has-image { width: 36px; height: 36px; border: 0; border-radius: 5px; background: #eee9d2; }
+.item-symbol img { width: 32px; height: 32px; object-fit: contain; image-rendering: pixelated; }
+.item-card p { margin: 5px 0; font-size: 10px; line-height: 1.5; color: #746b50; }
+#commerce .item-action { width: 100%; background: #e1f2e1; border-color: #a1b9a0; font-size: 11px; }
+.commerce-footnote { font-size: 9px; line-height: 1.6; color: #79745f; border-top: 1px solid #d9d3b7; padding-top: 8px; margin-bottom: 0; }
+#demo-wallet { margin-bottom: 10px; padding: 7px; border: 1px dashed #b6b394; border-radius: 5px; }
+#demo-wallet label, #demo-wallet small { display: block; font-size: 9px; line-height: 1.5; }
+#demo-balance { width: 100%; min-width: 0; margin: 5px 0; padding: 4px; border: 1px solid #b6b394; border-radius: 3px; font-size: 12px; }
+#set-demo-balance { width: 100%; margin-bottom: 4px; }
+#demo-wallet-tools { margin-bottom: 8px; }
+#demo-wallet-tools summary { cursor: pointer; font-size: 10px; color: #407b9c; }
+body:not([data-source="demo"]) #demo-wallet-tools { display: none; }
 * { box-sizing: border-box; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; user-select: none; }
 main { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; padding-bottom: 10px; }
@@ -10,6 +52,13 @@ main { width: 100%; height: 100%; display: flex; flex-direction: column; align-i
 #pet:active { cursor: grabbing; }
 #pet:focus-visible { border-radius: 30px; outline: 2px dashed #c59d36; outline-offset: -8px; }
 #pet { position: relative; }
+/* Stays clickable during evolution so its music can be silenced. */
+#mute { position: absolute; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 2px; border: 1px solid #b6b394; border-radius: 50%; background: #fffde9; color: #514b35; opacity: .55; cursor: pointer; transition: opacity 150ms ease; }
+#mute svg { width: 16px; height: 16px; }
+#mute:hover, #mute:focus-visible, #mute[aria-pressed="true"] { opacity: 1; }
+#mute:focus-visible { outline: 2px solid #407b9c; outline-offset: 1px; }
+#mute[aria-pressed="true"] { color: #b3473d; }
+#mute[aria-pressed="true"] .mute-waves, #mute[aria-pressed="false"] .mute-cross { display: none; }
 #recall-pose { display: flex; width: 144px; height: 144px; flex-shrink: 0; transform-origin: 72px 116px; }
 #sprite { width: 144px; height: 144px; object-fit: contain; image-rendering: pixelated; pointer-events: none; filter: drop-shadow(0 5px 3px #0003); }
 #sprite[hidden] { display: none; }

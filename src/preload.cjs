@@ -3,6 +3,11 @@ contextBridge.exposeInMainWorld('pet', {
   assets: kind => ipcRenderer.invoke('assets', kind),
   growthAudio: () => ipcRenderer.invoke('growth-audio'),
   progress: () => ipcRenderer.invoke('progress'),
+  itemImages: () => ipcRenderer.invoke('item-images'),
+  buyItem: id => ipcRenderer.invoke('buy-item', id),
+  setDemoBalance: balance => ipcRenderer.invoke('demo-balance', balance),
+  useItem: (id, expected) => ipcRenderer.invoke('use-item', id, expected),
+  onOpenCommerce: callback => ipcRenderer.on('open-commerce', (_event, tab) => callback(tab)),
   selectSpecies: kind => ipcRenderer.invoke('select-species', kind),
   onSelectSpecies: callback => ipcRenderer.on('select-species-request', (_event, kind) => callback(kind)),
   resetProgress: () => ipcRenderer.invoke('reset-progress'),
@@ -15,5 +20,6 @@ contextBridge.exposeInMainWorld('pet', {
   endDrag: () => ipcRenderer.invoke('drag-end'),
   cancelDrag: () => ipcRenderer.send('drag-cancel'),
   menu: () => ipcRenderer.send('menu'),
+  setMuted: muted => ipcRenderer.send('set-muted', muted),
   onMute: callback => ipcRenderer.on('mute', (_event, muted) => callback(muted)),
 });

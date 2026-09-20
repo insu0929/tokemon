@@ -10,8 +10,9 @@
     "test:smoke": "electron scripts/smoke.cjs",
     "test:recall": "electron scripts/recall-smoke.cjs",
     "test:browser": "node scripts/browser-smoke.cjs",
-    "test": "node --test scripts/progression.test.cjs scripts/usage.test.cjs",
-    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/growth-audio.js && node --check src/recall.js && node --check src/renderer.js && node --check src/progression.cjs && node --check src/tuning.cjs && node --check src/usage/files.cjs && node --check src/usage/claude.cjs && node --check src/usage/codex.cjs && node --check src/usage/sync.cjs"
+    "test:items": "electron scripts/items-smoke.cjs",
+    "test": "node --test scripts/progression.test.cjs scripts/items.test.cjs scripts/usage.test.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/growth-audio.js && node --check src/recall.js && node --check src/renderer.js && node --check src/progression.cjs && node --check src/items.cjs && node --check src/tuning.cjs && node --check src/usage/files.cjs && node --check src/usage/claude.cjs && node --check src/usage/codex.cjs && node --check src/usage/sync.cjs"
   },
   "build": {
     "appId": "com.insu0929.tokemon",
@@ -19,7 +20,7 @@
     "directories": { "output": "dist" },
     "files": ["src/**/*", "package.json"],
     "extraResources": [{ "from": "assets", "to": "assets" }],
-    "win": { "target": "portable" },
+    "win": { "target": "portable", "icon": "assets/tokemon.ico" },
     "portable": { "artifactName": "Tokemon-${version}-win-x64.exe" }
   },
   "devDependencies": {

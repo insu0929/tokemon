@@ -6,7 +6,7 @@ const { listLogs, statLog, LogTail } = require('./files.cjs');
 const LIMITS_TAIL_BYTES = 512 * 1024;
 const LIMITS_FILES = 3;
 
-// Turns new log entries of the selected source into EXP. Only numeric usage fields are
+// Imports available history on first link, then credits only new usage. Only numeric usage fields are
 // read, nothing leaves the machine, and a broken log can never stop the app.
 function createUsageSync({ directory, providers, progress, now = Date.now, onGrowth = () => {}, onStatus = () => {} }) {
   const filename = path.join(directory, 'usage.json');
@@ -180,18 +180,24 @@ function createUsageSync({ directory, providers, progress, now = Date.now, onGro
   return {
     status: () => enqueue(() => status()),
     poll: () => enqueue(poll),
-    // Linking always starts from now: usage from while another source was selected never counts.
+    // A first link starts at time zero so the whole history is imported once. After that each
+    // provider keeps its ledger across source switches, or a relink would credit history again.
     select: source => enqueue(async () => {
       if (source !== 'demo' && !Object.hasOwn(providers, source)) throw new Error('Unknown usage source');
       if (source === state.source) return status();
       forget();
       state.source = source;
       if (source !== 'demo') {
-        state.linked[source] = { since: now(), horizon: now(), seen: {} };
+        state.linked[source] ??= { since: 0, horizon: 0, seen: {} };
         await primeLimits(providers[source]);
       }
       await save();
       publish();
+      if (source !== 'demo') {
+        await poll();
+        // The import listed every log; list again next poll so only recent ones stay watched.
+        walkedAt = -Infinity;
+      }
       return status();
     }),
     start() {

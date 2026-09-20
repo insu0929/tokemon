@@ -56,6 +56,12 @@ app.whenReady().then(async () => {
   await evaluate('button.dispatchEvent(new PointerEvent("pointerup", { button: 0, pointerId: 2 }))');
   await delay(80);
   assert.equal(await evaluate('!cry.paused'), true, 'Pointer click plays cry');
+  await evaluate('document.querySelector("#mute").click()');
+  await delay(80);
+  assert.equal(await evaluate('muted && cry.paused && document.querySelector("#mute").getAttribute("aria-pressed")'), 'true', 'Mute button silences through main');
+  await evaluate('document.querySelector("#mute").click()');
+  await delay(80);
+  assert.equal(await evaluate('!muted && document.querySelector("#mute").getAttribute("aria-pressed")'), 'false', 'Mute button toggles back');
   window.webContents.send('mute', true);
   await delay(50);
   await evaluate('speak()');

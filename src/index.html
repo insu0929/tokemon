@@ -24,6 +24,13 @@
       </span>
       <span id="placeholder">⚡</span>
     </button>
+    <button id="mute" type="button" aria-pressed="false" aria-label="음소거" title="음소거">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+        <path fill="currentColor" d="M2 6H5V5H6V4H7V3H8V13H7V12H6V11H5V10H2Z"/>
+        <path class="mute-waves" fill="currentColor" d="M10 6H11V10H10ZM12 4H13V12H12Z"/>
+        <path class="mute-cross" fill="currentColor" d="M10 6H11V7H10ZM14 6H15V7H14ZM11 7H12V8H11ZM13 7H14V8H13ZM12 8H13V9H12ZM11 9H12V10H11ZM13 9H14V10H13ZM10 10H11V11H10ZM14 10H15V11H14Z"/>
+      </svg>
+    </button>
     </div>
     <section id="health" aria-label="토큰 잔여량 미연동, 예시 체력 바" title="토큰 잔여량 연동 전의 예시입니다">
       <div class="health-heading"><span id="species-label">PIKACHU</span><span id="level">Lv.1</span></div>
@@ -32,6 +39,9 @@
       <div class="exp-row"><span class="exp-label">EXP</span><div class="exp-track" role="progressbar" aria-label="다음 레벨까지 경험치" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="exp-fill"></div></div></div>
       <div class="growth-detail"><span id="state-label">활발</span><span id="exp-value">0 / 100</span></div>
     </section>
+    <nav class="commerce-nav" aria-label="아이템 메뉴">
+      <button id="open-bag" type="button">가방</button><button id="open-shop" type="button">상점</button>
+    </nav>
     <section class="preview" aria-label="토큰 미연동 상태 체험">
       <label id="remaining-label" for="remaining">잔여량 체험 <output id="remaining-value" for="remaining">100%</output></label>
       <input id="remaining" type="range" min="0" max="100" step="1" value="100" aria-label="체험용 잔여 토큰 비율">
@@ -44,6 +54,23 @@
       <span id="source-note" class="preview-note">실제 토큰 미연동</span>
     </section>
   </main>
+  <dialog id="commerce" aria-labelledby="commerce-title">
+    <header class="commerce-header"><h1 id="commerce-title">가방</h1><button id="close-commerce" type="button" aria-label="닫기">×</button></header>
+    <div class="wallet"><span>보유 토큰</span><strong id="wallet-balance">0</strong></div>
+    <details id="demo-wallet-tools"><summary>체험용 잔액 설정</summary>
+    <form id="demo-wallet">
+      <label for="demo-balance">체험용 보유 토큰 설정</label>
+      <input id="demo-balance" type="number" min="0" max="1000000000000" step="1" value="1000000" required>
+      <button id="set-demo-balance" type="submit">잔액 설정</button>
+      <small>EXP 변화 없이 잔액만 바뀌어요.</small>
+    </form>
+    </details>
+    <div class="commerce-tabs" aria-label="가방과 상점"><button id="bag-tab" type="button">가방</button><button id="shop-tab" type="button">상점</button></div>
+    <p id="commerce-description"></p>
+    <p id="commerce-feedback" role="status" aria-live="polite"></p>
+    <div id="item-list"></div>
+    <p class="commerce-footnote">사용 토큰 1개 = 보유 토큰 1개<br>구매해도 EXP는 유지돼요.</p>
+  </dialog>
   <script src="animation.js"></script>
   <script src="growth-audio.js"></script>
   <script src="recall.js"></script>

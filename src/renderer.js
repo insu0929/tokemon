@@ -97,10 +97,122 @@ function renderGrowth() {
   document.querySelector('.exp-fill').style.width = `${growth.exp / growth.nextExp * 100}%`;
   document.querySelector('.exp-track').setAttribute('aria-valuenow', growth.exp);
   document.querySelector('#evolution-hint').textContent = displayedInfo.evolution ? `Lv.${displayedInfo.evolution.level} → ${displayedInfo.evolutionName}` : `${name} · 레벨 진화 없음`;
+  const evolutions = growth.items?.filter(item => item.target) ?? [];
+  if (evolutions.length && displayedSpecies === growth.species) document.querySelector('#evolution-hint').textContent = evolutions.map(item => `${item.name} → ${item.targetName}`).join(' · ');
   button.setAttribute('aria-label', `${name}: 클릭하면 울음소리, 드래그하면 이동`);
   document.title = `Tokemon · ${name}`;
   refreshPetPresentation();
+  renderCommerce();
 }
+
+const commerce = document.querySelector('#commerce');
+let commerceTab = 'bag';
+let commerceFeedback = '';
+let itemImages = {};
+function renderCommerce() {
+  if (!growth) return;
+  document.querySelector('#set-demo-balance').disabled = !ready || addingTokens || loading || recall.busy;
+  document.querySelector('#wallet-balance').textContent = (growth.balance ?? 0).toLocaleString();
+  document.querySelector('#commerce-title').textContent = commerceTab === 'bag' ? '가방' : '상점';
+  document.querySelector('#bag-tab').setAttribute('aria-pressed', String(commerceTab === 'bag'));
+  document.querySelector('#shop-tab').setAttribute('aria-pressed', String(commerceTab === 'shop'));
+  document.querySelector('#commerce-description').textContent = commerceTab === 'bag'
+    ? `${growth.name}에게 사용할 아이템을 골라 주세요. 사용하면 1개가 소모돼요.`
+    : '진화 아이템을 구입해 가방에 담으세요.';
+  document.querySelector('#commerce-feedback').textContent = commerceFeedback;
+  const list = document.querySelector('#item-list');
+  const focusedId = list.contains(document.activeElement) ? document.activeElement.dataset.item : null;
+  list.replaceChildren();
+  const all = growth.items ?? [];
+  const visible = commerceTab === 'shop' ? all : all.filter(item => item.count > 0);
+  if (!visible.length) {
+    const empty = document.createElement('p');
+    empty.textContent = '가방이 비어 있어요. 상점에서 진화 아이템을 구입해 보세요.';
+    list.append(empty);
+  }
+  for (const item of visible) {
+    const card = document.createElement('article');
+    card.className = 'item-card';
+    const heading = document.createElement('div');
+    heading.className = 'item-heading';
+    const symbol = document.createElement('span');
+    symbol.className = 'item-symbol';
+    symbol.dataset.color = item.color;
+    symbol.textContent = item.symbol;
+    symbol.setAttribute('aria-hidden', 'true');
+    if (itemImages[item.id]) {
+      const image = document.createElement('img');
+      image.src = itemImages[item.id];
+      image.alt = '';
+      image.width = 32;
+      image.height = 32;
+      symbol.replaceChildren(image);
+      symbol.classList.add('has-image');
+    }
+    const title = document.createElement('strong');
+    title.textContent = item.name;
+    heading.append(symbol, title);
+    const detail = document.createElement('p');
+    detail.textContent = `보유 ${item.count}개`;
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'item-action';
+    action.dataset.item = item.id;
+    const busy = !ready || addingTokens || loading || recall.busy;
+    if (commerceTab === 'shop') {
+      action.textContent = `${item.price.toLocaleString()} 토큰 · 구매`;
+      action.disabled = busy || growth.balance < item.price;
+      action.setAttribute('aria-label', `${item.name} ${item.price.toLocaleString()} 토큰으로 구매`);
+      if (growth.balance < item.price) detail.textContent += ` · ${(item.price - growth.balance).toLocaleString()} 토큰 부족`;
+    } else {
+      action.textContent = item.target ? `${item.targetName}(으)로 진화` : '현재 포켓몬에게 사용 불가';
+      action.disabled = busy || !item.target;
+      action.setAttribute('aria-label', `${item.name} 사용: ${action.textContent}`);
+    }
+    action.addEventListener('click', () => { void commerceAction(item.id); });
+    card.append(heading, detail, action);
+    list.append(card);
+    if (focusedId === item.id && !action.disabled) action.focus({ preventScroll: true });
+  }
+}
+function openCommerce(tab) {
+  commerceTab = tab === 'shop' ? 'shop' : 'bag';
+  commerceFeedback = '';
+  renderCommerce();
+  if (!commerce.open) commerce.showModal();
+}
+async function commerceAction(id) {
+  if (!ready || addingTokens || loading || recall.busy) return;
+  const item = growth.items.find(item => item.id === id);
+  if (!item) return;
+  const buying = commerceTab === 'shop';
+  const expected = { starter: growth.starter, species: growth.species };
+  commerceFeedback = '';
+  if (!buying) commerce.close();
+  await grow(async () => {
+    const next = buying ? await window.pet.buyItem(id) : await window.pet.useItem(id, expected);
+    commerceFeedback = buying ? `${item.name} 1개를 가방에 담았어요.` : '';
+    return next;
+  }, () => buying ? '' : `${item.name}을 사용했어요.`, true);
+}
+document.querySelector('#open-bag').addEventListener('click', () => openCommerce('bag'));
+document.querySelector('#open-shop').addEventListener('click', () => openCommerce('shop'));
+document.querySelector('#bag-tab').addEventListener('click', () => openCommerce('bag'));
+document.querySelector('#shop-tab').addEventListener('click', () => openCommerce('shop'));
+document.querySelector('#close-commerce').addEventListener('click', () => commerce.close());
+document.querySelector('#demo-wallet').addEventListener('submit', event => {
+  event.preventDefault();
+  if (usage.source !== 'demo' || !ready || addingTokens || loading || recall.busy) return;
+  const input = document.querySelector('#demo-balance');
+  if (!input.reportValidity()) return;
+  void grow(async () => {
+    const next = await window.pet.setDemoBalance(Number(input.value));
+    document.querySelector('#demo-wallet-tools').open = false;
+    commerceFeedback = '체험 잔액을 설정했어요. 상점에서 아이템을 구입해 보세요.';
+    return next;
+  }, () => '', true);
+});
+window.pet.onOpenCommerce?.(openCommerce);
 
 async function setSpecies(kind) {
   const assets = await window.pet.assets(kind);
@@ -122,9 +234,10 @@ function addTokens(tokens) {
 }
 
 // Plays level-up and evolution for a new snapshot; `describe` words an ordinary EXP gain.
-async function grow(request, describe) {
+async function grow(request, describe, itemAction = false) {
   if (addingTokens || recall.busy || !ready) return;
   addingTokens = true;
+  renderCommerce();
   tokenAdd.disabled = true;
   try {
     const previous = growth;
@@ -187,8 +300,18 @@ async function grow(request, describe) {
       if (text) message(text, 2500);
     }
   } catch {
-    ready = false;
-    message('경험치 저장 또는 표시 실패. 몬스터를 눌러 다시 불러와 주세요.');
+    if (itemAction) {
+      commerceFeedback = '아이템 처리에 실패했어요. 잔액과 사용 가능한 포켓몬을 확인해 주세요.';
+      try {
+        growth = await window.pet.progress();
+        await setSpecies(growth.species);
+        renderGrowth();
+      } catch { ready = false; }
+      message(commerceFeedback, 5000);
+    } else {
+      ready = false;
+      message('경험치 저장 또는 표시 실패. 몬스터를 눌러 다시 불러와 주세요.');
+    }
   } finally {
     clearTimeout(silhouetteTimer);
     clearTimeout(alternatingTimer);
@@ -200,6 +323,7 @@ async function grow(request, describe) {
     document.body.classList.remove('evolving', 'evolution-silhouette', 'evolution-alternating');
     addingTokens = false;
     tokenAdd.disabled = !ready;
+    renderCommerce();
     void reconcileRest();
     flushUsage();
   }
@@ -266,7 +390,7 @@ function applyUsage(next) {
   if (next.observedAt) health.title += `\n마지막 확인: ${new Date(next.observedAt).toLocaleString('ko-KR')}\n로그 기준이며 실제 잔여량과 차이가 날 수 있어요.`;
   health.setAttribute('aria-label', health.title);
   refreshPetPresentation();
-  if (changed && ready) message(next.source === 'demo' ? '체험 모드로 바꿨어요.' : `${next.name} 연동 시작! 지금부터 쓰는 토큰이 EXP가 돼요.`, 4500);
+  if (changed && ready) message(next.source === 'demo' ? '체험 모드로 바꿨어요.' : `${next.name} 사용 기록을 확인하고 있어요. 누적 사용량을 반영합니다.`, 4500);
   void reconcileRest();
   flushUsage();
 }
@@ -307,6 +431,7 @@ async function resetGrowth() {
   } finally {
     addingTokens = false;
     tokenAdd.disabled = !ready;
+    renderCommerce();
     void reconcileRest();
     flushUsage();
   }
@@ -333,6 +458,7 @@ async function selectSpecies(kind) {
   } finally {
     addingTokens = false;
     tokenAdd.disabled = !ready;
+    renderCommerce();
     void reconcileRest();
     flushUsage();
   }
@@ -351,6 +477,7 @@ async function load() {
   message('포켓몬을 데려오는 중…');
   try {
     growth = await window.pet.progress();
+    itemImages = await window.pet.itemImages?.() ?? {};
     await setSpecies(growth.species);
     await growthAudio.load();
     renderGrowth();
@@ -367,7 +494,7 @@ async function load() {
     flushUsage();
   } catch {
     message('몬스터나 성장 기록을 불러오지 못했어요. 눌러서 다시 시도해 주세요.');
-  } finally { loading = false; }
+  } finally { loading = false; renderCommerce(); }
 }
 
 async function speak(transition = false) {
@@ -377,7 +504,7 @@ async function speak(transition = false) {
   }
   if (addingTokens && !transition) return;
   if (!ready) return load();
-  if (muted) { if (!transition) message('음소거 중 · 우클릭으로 해제', 1800); return; }
+  if (muted) { if (!transition) message('음소거 중 · 스피커 버튼으로 해제', 1800); return; }
   if (state === 'fainted' && !transition) return message('쉬는 중… 잔여량을 올려 주세요', 1800);
   if (transition) cry.pause();
   if (!cry.paused) return;
@@ -448,5 +575,14 @@ button.addEventListener('keydown', event => {
   if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) { event.preventDefault(); void speak(); }
 });
 document.addEventListener('contextmenu', event => { event.preventDefault(); window.pet.menu(); });
-window.pet.onMute(value => { muted = value; growthAudio.setMuted(value); if (muted) { ++voiceId; cry.pause(); } });
+const muteButton = document.querySelector('#mute');
+muteButton.addEventListener('click', () => window.pet.setMuted(!muted));
+window.pet.onMute(value => {
+  muted = value;
+  growthAudio.setMuted(value);
+  if (muted) { ++voiceId; cry.pause(); }
+  muteButton.setAttribute('aria-pressed', String(muted));
+  muteButton.title = muted ? '음소거 해제' : '음소거';
+  muteButton.setAttribute('aria-label', muteButton.title);
+});
 void load();

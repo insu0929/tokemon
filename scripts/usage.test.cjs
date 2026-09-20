@@ -56,28 +56,31 @@ test('Claude: streamed duplicates count once at their largest value, subagents i
   await sync.poll();
   assert.deepEqual(t.events.map(event => event.tokens), [10 + 20000 + 9990 + 20000]);
   assert.equal(await t.exp(), 5, '50,000 tokens at 10,000 per EXP');
+  assert.equal((await createProgression(t.data).get()).balance, 50000, 'Only countable usage enters the wallet');
   await sync.poll();
   assert.equal(t.events.length, 1, 'Nothing new means nothing credited');
+  assert.equal((await createProgression(t.data).get()).balance, 50000, 'Polling never credits the wallet twice');
 });
 
-test('Usage before linking is ignored; appended lines add only the difference', async () => {
+test('First link imports existing usage; appended lines add only the difference', async () => {
   const t = await setup();
   const log = path.join(t.logs.claude, 'p', 's.jsonl');
   await t.append(log, claudeLine({ id: 'old', time: t.clock.now - HOUR, output: 5000000 }));
   const sync = t.open();
   t.clock.now += 1000;
   await sync.select('claude');
+  assert.equal(await t.exp(), 500, 'History is credited immediately on first link');
   t.clock.now += 1000;
   await t.append(log, claudeLine({ id: 'new', time: t.clock.now, output: 30000 }));
   await sync.poll();
-  assert.equal(await t.exp(), 3);
+  assert.equal(await t.exp(), 503);
   // A line without its newline yet is still being written.
   await fs.appendFile(log, claudeLine({ id: 'partial', time: t.clock.now, output: 10000 }));
   await sync.poll();
-  assert.equal(await t.exp(), 3);
+  assert.equal(await t.exp(), 503);
   await t.append(log, '', claudeLine({ id: 'new', time: t.clock.now, output: 40000 }));
   await sync.poll();
-  assert.equal(await t.exp(), 5, 'partial line (1) plus growth of an already credited message (1)');
+  assert.equal(await t.exp(), 505, 'partial line (1) plus growth of an already credited message (1)');
 });
 
 test('Restart neither repeats nor loses usage, and catches up on usage while closed', async () => {
@@ -95,13 +98,16 @@ test('Restart neither repeats nor loses usage, and catches up on usage while clo
   assert.equal((await sync.status()).source, 'claude', 'Selected source is remembered');
   assert.equal(await t.exp(), 5);
   assert.deepEqual(t.events.map(event => event.tokens), [20000, 30000]);
+  assert.equal((await createProgression(t.data).get()).balance, 50000, 'Restart credits only new tokens');
 });
 
-test('Entries older than the horizon are not credited again from a long-running log', async () => {
+test('Entries older than the horizon, imported history included, are not credited again', async () => {
   const t = await setup();
   const log = path.join(t.logs.claude, 'p', 'long.jsonl');
+  await t.append(log, claudeLine({ id: 'ancient', time: t.clock.now - 900 * HOUR, output: 10000 }));
   let sync = t.open();
   await sync.select('claude');
+  assert.equal(await t.exp(), 1);
   t.clock.now += 1000;
   await t.append(log, claudeLine({ id: 'early', time: t.clock.now, output: 50000 }));
   await sync.poll();
@@ -114,7 +120,12 @@ test('Entries older than the horizon are not credited again from a long-running 
   t.clock.now += 1000;
   await t.append(log, claudeLine({ id: 'later', time: t.clock.now, output: 10000 }));
   await sync.poll();
-  assert.equal(await t.exp(), 7);
+  assert.equal(await t.exp(), 8);
+  // A copy of an old log turning up later must not pay out the imported history twice.
+  await t.append(path.join(t.logs.claude, 'p', 'copy.jsonl'), claudeLine({ id: 'ancient', time: t.clock.now - 972 * HOUR, output: 10000 }));
+  await sync.select('demo');
+  await sync.select('claude');
+  assert.equal(await t.exp(), 8);
 });
 
 test('Codex: per-response records are exact; cumulative resets and repeated snapshots do not matter', async () => {
@@ -152,7 +163,8 @@ test('Codex HP follows the 5-hour window, is known right after linking, and refi
   assert.equal((await sync.status()).hp, null, 'Demo mode has no linked HP');
   const linked = await sync.select('codex');
   assert.deepEqual(linked.hp, { remaining: 48, resetsAt: Math.floor(resetsAt / 1000) * 1000, windowMinutes: 300, exhausted: false, estimated: false });
-  assert.equal(await t.exp(), 0, 'Reading limits from an old log credits nothing');
+  assert.equal(await t.exp(), 0, 'Ten historical tokens are less than one EXP');
+  assert.equal((await createProgression(t.data).get()).balance, 10);
   t.clock.now += 1000;
   await t.append(path.join(t.logs.codex, 'rollout-now.jsonl'), codexCount({ time: t.clock.now, total: 0, limits: rateLimits(93.4, resetsAt) }));
   await sync.poll();
@@ -163,7 +175,7 @@ test('Codex HP follows the 5-hour window, is known right after linking, and refi
   assert.deepEqual(statuses.map(status => status.hp?.remaining), [48, 7, 100]);
 });
 
-test('Switching sources relinks from now; demo mode reads nothing', async () => {
+test('Switching sources resumes each ledger; demo mode reads nothing', async () => {
   const t = await setup();
   const sync = t.open();
   const claudeLog = path.join(t.logs.claude, 'p', 's.jsonl');
@@ -177,12 +189,17 @@ test('Switching sources relinks from now; demo mode reads nothing', async () => 
   t.clock.now += 1000;
   await t.append(claudeLog, claudeLine({ id: 'after-relink', time: t.clock.now, output: 10000 }));
   await sync.poll();
-  assert.equal(await t.exp(), 1);
+  assert.equal(await t.exp(), 10);
   await sync.select('demo');
   t.clock.now += 1000;
   await t.append(claudeLog, claudeLine({ id: 'while-demo', time: t.clock.now, output: 90000 }));
   await sync.poll();
-  assert.equal(await t.exp(), 1);
+  assert.equal(await t.exp(), 10);
+  await sync.select('claude');
+  assert.equal(await t.exp(), 19, 'Returning catches up usage recorded during demo');
+  await sync.select('codex');
+  await sync.select('claude');
+  assert.equal(await t.exp(), 19, 'Repeated switching never recredits history');
   await assert.rejects(sync.select('gemini'));
 });
 
