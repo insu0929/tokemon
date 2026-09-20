@@ -1,5 +1,7 @@
 // Every number that shapes growth and usage sync lives here; expect to tune these often.
 module.exports = {
+  // Spendable tokens are earned 1:1 alongside EXP; purchases never remove EXP.
+  evolutionItemPrice: 100000,
   // Tokens needed for 1 EXP, per source. Earned EXP is stored as fixed-point points,
   // so changing a rate only affects future gains, never progress already earned.
   tokensPerExp: { demo: 100, claude: 10000, codex: 10000 },

@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { species, createProgression } = require('./progression.cjs');
+const { items } = require('./items.cjs');
 const { createUsageSync } = require('./usage/sync.cjs');
 const claude = require('./usage/claude.cjs');
 const codex = require('./usage/codex.cjs');
@@ -29,7 +30,7 @@ let dragTimer;
 const assetPromises = new Map();
 let muted = false;
 const SIZE = 192;
-const HEIGHT = 460;
+const HEIGHT = 500;
 
 async function cachedAsset(filename, url, mime) {
   const directory = path.join(app.getPath('userData'), 'assets');
@@ -140,6 +141,28 @@ else {
       return { level: `data:audio/wav;base64,${level.toString('base64')}`, fanfare: `data:audio/mpeg;base64,${fanfare.toString('base64')}`, evolution: `data:audio/mpeg;base64,${evolution.toString('base64')}`, success: `data:audio/mpeg;base64,${success.toString('base64')}` };
     });
     ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
+    ipcMain.handle('item-images', async event => {
+      if (!trusted(event)) return;
+      const root = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'), 'assets', 'items');
+      return Object.fromEntries(await Promise.all(Object.keys(items).map(async id => {
+        const bytes = await fs.readFile(path.join(root, `${id}.png`));
+        return [id, `data:image/png;base64,${bytes.toString('base64')}`];
+      })));
+    });
+    ipcMain.handle('buy-item', (event, id) => { if (trusted(event)) return progress.buy(id); });
+    ipcMain.handle('demo-balance', (event, balance) => {
+      if (!trusted(event)) return;
+      if (usageStatus.source !== 'demo') throw new Error('잔액 설정은 체험 모드에서만 가능해요.');
+      return progress.setDemoBalance(balance);
+    });
+    ipcMain.handle('use-item', async (event, id, expected) => {
+      if (!trusted(event)) return;
+      // Load the target before consuming anything, so missing resources cost no item.
+      const before = await progress.get();
+      const item = before.items.find(item => item.id === id);
+      if (item?.target) await getAssets(item.target);
+      return progress.use(id, expected);
+    });
     ipcMain.handle('select-species', async (event, kind) => {
       if (!trusted(event)) return;
       await getAssets(kind);
@@ -166,6 +189,8 @@ else {
       stopDrag();
       Menu.buildFromTemplate([
         { label: 'Tokemon · 드래그로 이동 / 클릭하면 울음소리', enabled: false },
+        { label: '가방', click: () => pet.webContents.send('open-commerce', 'bag') },
+        { label: '상점', click: () => pet.webContents.send('open-commerce', 'shop') },
         { type: 'separator' },
         { label: '포켓몬 선택 · 1세대', submenu: Array.from({ length: 8 }, (_, group) => ({
           label: `#${String(group * 20 + 1).padStart(3, '0')}–#${String(Math.min(151, (group + 1) * 20)).padStart(3, '0')}`,

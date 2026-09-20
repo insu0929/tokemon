@@ -58,7 +58,7 @@ test('linked sources use their own rate on the same monster, and version 1 saves
   assert.equal((await store.add(1, 'codex')).species, 'pikachu');
   assert.equal((await store.add(3000000, 'claude')).level, 8, 'Linked usage may exceed the demo input limit');
   await assert.rejects(store.add(100, 'gemini'));
-  assert.equal(JSON.parse(await fs.readFile(path.join(dir, 'progress.json'), 'utf8')).version, 3);
+  assert.equal(JSON.parse(await fs.readFile(path.join(dir, 'progress.json'), 'utf8')).version, 4);
   assert.equal((await createProgression(dir).get()).totalExp, 700);
 });
 

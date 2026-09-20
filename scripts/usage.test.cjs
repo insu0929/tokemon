@@ -56,8 +56,10 @@ test('Claude: streamed duplicates count once at their largest value, subagents i
   await sync.poll();
   assert.deepEqual(t.events.map(event => event.tokens), [10 + 20000 + 9990 + 20000]);
   assert.equal(await t.exp(), 5, '50,000 tokens at 10,000 per EXP');
+  assert.equal((await createProgression(t.data).get()).balance, 50000, 'Only countable usage enters the wallet');
   await sync.poll();
   assert.equal(t.events.length, 1, 'Nothing new means nothing credited');
+  assert.equal((await createProgression(t.data).get()).balance, 50000, 'Polling never credits the wallet twice');
 });
 
 test('Usage before linking is ignored; appended lines add only the difference', async () => {
@@ -95,6 +97,7 @@ test('Restart neither repeats nor loses usage, and catches up on usage while clo
   assert.equal((await sync.status()).source, 'claude', 'Selected source is remembered');
   assert.equal(await t.exp(), 5);
   assert.deepEqual(t.events.map(event => event.tokens), [20000, 30000]);
+  assert.equal((await createProgression(t.data).get()).balance, 50000, 'Restart credits only new tokens');
 });
 
 test('Entries older than the horizon are not credited again from a long-running log', async () => {
