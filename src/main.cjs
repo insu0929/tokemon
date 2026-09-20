@@ -117,6 +117,7 @@ else {
       if (Number.isFinite(saved.x) && Number.isFinite(saved.y)) position = constrain({ x: saved.x, y: saved.y });
     } catch { /* First launch. */ }
     pet = new BrowserWindow({
+      icon: path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'), 'assets', 'tokemon.ico'),
       ...position, width: SIZE, height: HEIGHT, title: 'Tokemon · 피카츄',
       transparent: true, frame: false, resizable: false, maximizable: false,
       alwaysOnTop: true, skipTaskbar: false, hasShadow: false, show: false,

@@ -19,7 +19,7 @@
     "directories": { "output": "dist" },
     "files": ["src/**/*", "package.json"],
     "extraResources": [{ "from": "assets", "to": "assets" }],
-    "win": { "target": "portable" },
+    "win": { "target": "portable", "icon": "assets/tokemon.ico" },
     "portable": { "artifactName": "Tokemon-${version}-win-x64.exe" }
   },
   "devDependencies": {
