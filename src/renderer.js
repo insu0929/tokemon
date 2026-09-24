@@ -18,8 +18,12 @@ let transitionTimer;
 let lastSoundState = state;
 let voiceId = 0;
 const cry = new Audio();
-cry.volume = 0.45;
 cry.preservesPitch = false;
+// Master volume scales the per-state cry gain and every growth track alike.
+let volume = 1;
+let cryGain = .45;
+function setCryGain(gain) { cryGain = gain; cry.volume = gain * volume; }
+setCryGain(cryGain);
 let ready = false;
 let loading = false;
 let pressed = false;
@@ -401,7 +405,7 @@ async function evolutionCry() {
   ++voiceId;
   cry.pause();
   cry.playbackRate = 1;
-  cry.volume = .45;
+  setCryGain(.45);
   cry.currentTime = 0;
   await growthAudio.playOnce(cry, 1500, true);
 }
@@ -512,7 +516,7 @@ async function speak(transition = false) {
   const profile = profiles[state];
   try {
     cry.playbackRate = profile.rate;
-    cry.volume = profile.volume;
+    setCryGain(profile.volume);
     cry.currentTime = 0;
     await cry.play();
     if (currentVoice !== voiceId) return;
@@ -576,7 +580,54 @@ button.addEventListener('keydown', event => {
 });
 document.addEventListener('contextmenu', event => { event.preventDefault(); window.pet.menu(); });
 const muteButton = document.querySelector('#mute');
-muteButton.addEventListener('click', () => window.pet.setMuted(!muted));
+const volumePanel = document.querySelector('#volume-panel');
+const volumeSlider = document.querySelector('#volume');
+const LONG_PRESS_MS = 450;
+let longPressTimer;
+let longPressed = false;
+function applyVolume(value, persist = true) {
+  volume = Math.max(0, Math.min(100, Math.round(Number(value) || 0))) / 100;
+  setCryGain(cryGain);
+  growthAudio.setVolume(volume);
+  volumeSlider.value = String(volume * 100);
+  document.querySelector('#volume-value').textContent = `${Math.round(volume * 100)}%`;
+  muteButton.dataset.level = volume === 0 ? 'off' : volume < .5 ? 'low' : 'high';
+  // Per-machine preference; storage can be unavailable in odd profiles, and then the default is fine.
+  if (persist) try { localStorage.setItem('volume', String(Math.round(volume * 100))); } catch { /* keep in memory */ }
+}
+function showVolume() {
+  volumePanel.hidden = false;
+  muteButton.setAttribute('aria-expanded', 'true');
+}
+function hideVolume() {
+  if (volumePanel.hidden) return;
+  volumePanel.hidden = true;
+  muteButton.setAttribute('aria-expanded', 'false');
+}
+let savedVolume = 100;
+try { savedVolume = localStorage.getItem('volume') ?? 100; } catch { /* default */ }
+applyVolume(savedVolume, false);
+volumeSlider.addEventListener('input', () => applyVolume(volumeSlider.value));
+// Holding the button opens the slider; a quick press still toggles mute.
+muteButton.addEventListener('pointerdown', event => {
+  if (event.button !== 0) return;
+  longPressed = false;
+  clearTimeout(longPressTimer);
+  longPressTimer = setTimeout(() => { longPressed = true; showVolume(); }, LONG_PRESS_MS);
+});
+for (const type of ['pointerup', 'pointercancel', 'pointerleave']) muteButton.addEventListener(type, () => clearTimeout(longPressTimer));
+muteButton.addEventListener('click', () => {
+  if (longPressed) { longPressed = false; return; }
+  window.pet.setMuted(!muted);
+});
+muteButton.addEventListener('keydown', event => {
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); showVolume(); volumeSlider.focus(); }
+});
+document.addEventListener('pointerdown', event => {
+  if (!volumePanel.contains(event.target) && event.target !== muteButton && !muteButton.contains(event.target)) hideVolume();
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape') hideVolume(); });
+window.addEventListener('blur', hideVolume);
 window.pet.onMute(value => {
   muted = value;
   growthAudio.setMuted(value);

@@ -59,6 +59,14 @@ main { width: 100%; height: 100%; display: flex; flex-direction: column; align-i
 #mute:focus-visible { outline: 2px solid #407b9c; outline-offset: 1px; }
 #mute[aria-pressed="true"] { color: #b3473d; }
 #mute[aria-pressed="true"] .mute-waves, #mute[aria-pressed="false"] .mute-cross { display: none; }
+#mute[aria-pressed="false"][data-level="off"] .mute-waves { display: none; }
+#mute[aria-pressed="false"][data-level="low"] .mute-wave-far { display: none; }
+/* Opened by holding the mute button; sits above it so the pet stays visible. */
+#volume-panel { position: absolute; right: 0; bottom: 26px; width: 108px; padding: 5px 7px; border: 2px solid #514b35; border-radius: 8px; background: #fffde9; color: #51412a; font-size: 10px; box-shadow: 0 2px 0 #0002; }
+#volume-panel[hidden] { display: none; }
+#volume-panel label { display: flex; justify-content: space-between; align-items: center; }
+#volume-panel output { font: bold 10px "Consolas", monospace; }
+#volume-panel input { display: block; width: 100%; height: 14px; margin: 3px 0 0; accent-color: #438561; cursor: pointer; }
 #recall-pose { display: flex; width: 144px; height: 144px; flex-shrink: 0; transform-origin: 72px 116px; }
 #sprite { width: 144px; height: 144px; object-fit: contain; image-rendering: pixelated; pointer-events: none; filter: drop-shadow(0 5px 3px #0003); }
 #sprite[hidden] { display: none; }
