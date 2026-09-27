@@ -1,4 +1,8 @@
-:root { color-scheme: light; font-family: "Malgun Gothic", sans-serif; --monster-width: 144px; }
+:root { color-scheme: light; font-family: "Malgun Gothic", "Yu Gothic", "Microsoft YaHei", sans-serif; --monster-width: 144px; }
+#species-label { min-width: 0; overflow-wrap: anywhere; }
+.item-heading strong, .item-action { overflow-wrap: anywhere; }
+.growth-detail { gap: 4px; }
+#exp-value { flex-shrink: 0; }
 .commerce-nav { display: flex; width: var(--monster-width); gap: 5px; flex-shrink: 0; }
 .commerce-nav button { flex: 1; padding: 4px; background: #fffde9; border: 1px solid #b6b394; border-radius: 5px; color: #514b35; font: bold 11px "Malgun Gothic", sans-serif; cursor: pointer; }
 #commerce { width: calc(100% - 12px); max-width: 310px; max-height: calc(100% - 16px); padding: 10px; border: 2px solid #514b35; border-radius: 10px; background: #fffde9; color: #51412a; font-size: 11px; overflow-y: auto; scrollbar-width: thin; box-shadow: 0 4px 12px #0003; }

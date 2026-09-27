@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('pet', {
+  language: () => ipcRenderer.invoke('language'),
+  onLanguage: callback => ipcRenderer.on('language', (_event, language) => callback(language)),
   assets: kind => ipcRenderer.invoke('assets', kind),
   growthAudio: () => ipcRenderer.invoke('growth-audio'),
   progress: () => ipcRenderer.invoke('progress'),

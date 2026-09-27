@@ -128,7 +128,7 @@ function send(method, params = {}) {
     assert.equal(result.kind, kind);
     assert.equal(result.ready, true);
     assert.ok(result.frames > 0 && result.audio > 0 && !result.anchor.includes('NaN'), kind);
-    assert.equal(result.label, entry.label);
+    assert.equal(result.label, entry.name);
     index++;
   }
   await fs.writeFile(path.join(data, 'kanto-catalog.png'), Buffer.from((await evaluate('catalogSheet.toDataURL()')).split(',')[1], 'base64'));
