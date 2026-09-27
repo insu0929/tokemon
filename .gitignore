@@ -2,3 +2,4 @@ node_modules/
 .local/
 dist/
 *.log
+Tokemon-0.7.0-win-x64.exe
