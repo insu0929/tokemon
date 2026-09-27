@@ -5,11 +5,9 @@ class GrowthAudio {
     this.fanfare = new Audio();
     this.music = new Audio();
     this.success = new Audio();
-    this.level.volume = .4;
     // Edited music is loudness-matched to the cries; use the same output gain.
-    this.music.volume = .45;
-    this.fanfare.volume = .4;
-    this.success.volume = .45;
+    this.gains = new Map([[this.level, .4], [this.music, .45], [this.fanfare, .4], [this.success, .45]]);
+    this.setVolume(1);
     this.music.loop = false;
     this.muted = false;
     this.cancelLevel = undefined;
@@ -28,6 +26,11 @@ class GrowthAudio {
   }
 
   get tracks() { return [this.level, this.fanfare, this.music, this.success]; }
+
+  // Master volume (0-1) scales every track's own gain, including one already playing.
+  setVolume(value) {
+    for (const [audio, gain] of this.gains) audio.volume = gain * value;
+  }
 
   stop() {
     this.cancelLevel?.();

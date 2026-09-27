@@ -24,10 +24,15 @@
       </span>
       <span id="placeholder">⚡</span>
     </button>
-    <button id="mute" type="button" aria-pressed="false" aria-label="음소거" title="음소거">
+    <div id="volume-panel" role="group" aria-label="볼륨" hidden>
+      <label for="volume">볼륨 <output id="volume-value" for="volume">100%</output></label>
+      <input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="볼륨">
+    </div>
+    <button id="mute" type="button" aria-pressed="false" aria-expanded="false" aria-controls="volume-panel" aria-label="음소거" title="클릭: 음소거 · 길게 누르기: 볼륨">
       <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
         <path fill="currentColor" d="M2 6H5V5H6V4H7V3H8V13H7V12H6V11H5V10H2Z"/>
-        <path class="mute-waves" fill="currentColor" d="M10 6H11V10H10ZM12 4H13V12H12Z"/>
+        <path class="mute-waves" fill="currentColor" d="M10 6H11V10H10Z"/>
+        <path class="mute-waves mute-wave-far" fill="currentColor" d="M12 4H13V12H12Z"/>
         <path class="mute-cross" fill="currentColor" d="M10 6H11V7H10ZM14 6H15V7H14ZM11 7H12V8H11ZM13 7H14V8H13ZM12 8H13V9H12ZM11 9H12V10H11ZM13 9H14V10H13ZM10 10H11V11H10ZM14 10H15V11H14Z"/>
       </svg>
     </button>
