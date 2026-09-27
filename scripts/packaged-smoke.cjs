@@ -61,6 +61,7 @@ function send(method, params = {}) {
         const bundled = await window.pet.assets(kind);
         await probe.load(bundled.sprite);
         if (!probe.frames.length || !bundled.name) throw new Error(kind + ': missing sprite or metadata');
+        if (!Object.keys(I18n.languages).every(language => I18n.names[bundled.name]?.[language])) throw new Error(kind + ': missing translated name');
         const bytes = Uint8Array.from(atob(bundled.cry.split(',')[1]), c => c.charCodeAt(0));
         if (!(await audioContext.decodeAudioData(bytes.buffer)).duration) throw new Error(kind + ': missing cry');
         probe.dispose();
@@ -75,7 +76,10 @@ function send(method, params = {}) {
       document.querySelector('#mute').click();
       for (let i = 0; i < 20 && !muted; i++) await new Promise(r => setTimeout(r, 50));
       if (!muted || document.querySelector('#mute').getAttribute('aria-pressed') !== 'true') throw new Error('Mute button failed');
-      return 'PASS: portable exe, all 151 sprites and cries decoded offline, growth audio, EXP HUD, item images, mute button, animation, faint and recovery';
+      if (I18n.language !== 'ko' || document.querySelector('#species-label').textContent !== I18n.name(displayedInfo.name)) throw new Error('Default language failed');
+      const volume = document.querySelector('#volume');
+      if (!volume || !document.querySelector('#volume-panel').hidden || volume.value !== '100') throw new Error('Volume slider missing');
+      return 'PASS: portable exe, all 151 sprites and cries decoded offline, four-language names, growth audio, EXP HUD, item images, mute button, volume slider, animation, faint and recovery';
     })()`, awaitPromise: true, returnByValue: true,
   });
   assert.ok(!result.exceptionDetails, JSON.stringify(result.exceptionDetails));

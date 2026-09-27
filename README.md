@@ -12,7 +12,9 @@
 
 ### Windows 실행 파일
 
-v0.6.0 빌드 결과는 `dist/Tokemon-0.6.0-win-x64.exe`이며 [최신 릴리스](https://github.com/insu0929/tokemon/releases/latest)에서 받을 수 있습니다. 상점·가방과 아이템 진화, 첫 연동 시 누적 사용량 합산, 음소거 버튼, 앱 아이콘을 추가했습니다. 별도 임시 프로필로 실제 실행 파일의 151종 리소스·아이템 이미지 디코딩, 음소거 버튼, 오프라인 동작 검사(`node scripts/packaged-smoke.cjs`)를 통과했습니다.
+v0.7.0 빌드 결과는 `dist/Tokemon-0.7.0-win-x64.exe`이며 [최신 릴리스](https://github.com/insu0929/tokemon/releases/latest)에서 받을 수 있습니다. 한국어·영어·일본어·중국어(간체) UI 언어 선택과 스피커 버튼 길게 누르기 볼륨 슬라이더를 추가했습니다. 별도 임시 프로필로 실제 실행 파일의 151종 리소스·아이템 이미지 디코딩, 네 언어 이름 데이터, 음소거 버튼·볼륨 슬라이더, 오프라인 동작 검사(`node scripts/packaged-smoke.cjs`)를 통과했습니다.
+
+v0.6.0 빌드 결과는 `dist/Tokemon-0.6.0-win-x64.exe`이며 [v0.6.0 릴리스](https://github.com/insu0929/tokemon/releases/tag/v0.6.0)에서 받을 수 있습니다. 상점·가방과 아이템 진화, 첫 연동 시 누적 사용량 합산, 음소거 버튼, 앱 아이콘을 추가했습니다. 별도 임시 프로필로 실제 실행 파일의 151종 리소스·아이템 이미지 디코딩, 음소거 버튼, 오프라인 동작 검사(`node scripts/packaged-smoke.cjs`)를 통과했습니다.
 
 v0.5.0 빌드 결과는 `dist/Tokemon-0.5.0-win-x64.exe`이며 [v0.5.0 릴리스](https://github.com/insu0929/tokemon/releases/tag/v0.5.0)에서 받을 수 있습니다. 151종 이미지·울음소리를 포함하며, 별도 임시 프로필로 실제 실행 파일의 전체 리소스 디코딩과 오프라인 동작 검사를 통과했습니다.
 
