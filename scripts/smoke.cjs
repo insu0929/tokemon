@@ -187,7 +187,7 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate('document.body.classList.contains("evolution-silhouette") && displayedSpecies === "metapod"'), true, 'Evolved silhouette appears during BGM');
   assert.equal(await evaluate('getComputedStyle(sprite).filter'), 'brightness(0)', 'Silhouette never exposes sprite colours');
   assert.equal(await evaluate('sprite.style.translate'), previewAlignment, 'Final form keeps the exact preview alignment');
-  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'CATERPIE', 'Name is held until reveal');
+  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), '캐터피', 'Name is held until reveal');
   const cueOffset = await evaluate('performance.now() - window.evolutionEvents.find(event => event.kind === "music").time');
   assert.ok(Math.abs(cueOffset - 8984) < 600, 'Silhouette follows source 16s cue');
   await fs.writeFile(path.join(__dirname, '..', '.local', 'evolution-silhouette.png'), (await window.webContents.capturePage()).toPNG());
@@ -208,7 +208,7 @@ app.whenReady().then(async () => {
   console.log('PASS: shortened evolution, complete species cries and gap-free cue order');
   assert.equal(await evaluate('growth.totalExp'), 600, 'Duplicate action ignored during evolution');
   assert.equal(await evaluate('displayedSpecies'), 'metapod');
-  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), 'METAPOD');
+  assert.equal(await evaluate('document.querySelector("#species-label").textContent'), '단데기');
   assert.equal(await evaluate('growth.level'), 7);
   assert.equal(await evaluate('player.frames.length > 1'), true, 'Metapod animation decoded');
   await evaluate('addTokens(12345)');

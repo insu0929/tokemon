@@ -1,3 +1,5 @@
+const I18n = require('./i18n.js');
+const { t } = I18n;
 const { app, BrowserWindow, ipcMain, Menu, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
@@ -31,6 +33,20 @@ const assetPromises = new Map();
 let muted = false;
 const SIZE = 192;
 const HEIGHT = 500;
+// Serialize preference writes so rapid menu selections cannot save out of order.
+let settingsWrite = Promise.resolve();
+function setLanguage(language) {
+  settingsWrite = settingsWrite.then(async () => {
+    const code = I18n.normalize(language);
+    const file = path.join(app.getPath('userData'), 'settings.json');
+    await fs.mkdir(app.getPath('userData'), { recursive: true });
+    await fs.writeFile(file + '.tmp', JSON.stringify({ language: code }));
+    await fs.rename(file + '.tmp', file);
+    I18n.setLanguage(code);
+    if (pet && !pet.isDestroyed()) pet.webContents.send('language', code);
+  }).catch(error => console.error('Language save:', error.message));
+  return settingsWrite;
+}
 
 async function cachedAsset(filename, url, mime) {
   const directory = path.join(app.getPath('userData'), 'assets');
@@ -57,7 +73,7 @@ function getAssets(kind = 'pikachu') {
   ]).then(([sprite, cry]) => ({ sprite, cry, ...species[kind], evolutionName: species[species[kind].evolution?.species]?.name })).catch(error => {
     assetPromises.delete(kind);
     console.error(error.message);
-    throw new Error('이미지·소리를 받지 못했어요. 인터넷 연결 후 다시 눌러 주세요.');
+    throw new Error(t('m74'));
   }));
   return assetPromises.get(kind);
 }
@@ -112,6 +128,10 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { pet?.show(); });
   app.whenReady().then(async () => {
+    try {
+      const settings = JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'settings.json'), 'utf8'));
+      I18n.setLanguage(settings.language);
+    } catch { /* Existing profiles and invalid settings default to Korean. */ }
     let position = homePosition();
     try {
       const saved = JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'position.json'), 'utf8'));
@@ -119,7 +139,7 @@ else {
     } catch { /* First launch. */ }
     pet = new BrowserWindow({
       icon: path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'), 'assets', 'tokemon.ico'),
-      ...position, width: SIZE, height: HEIGHT, title: 'Tokemon · 피카츄',
+      ...position, width: SIZE, height: HEIGHT, title: t('m75'),
       transparent: true, frame: false, resizable: false, maximizable: false,
       alwaysOnTop: true, skipTaskbar: false, hasShadow: false, show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
@@ -140,6 +160,7 @@ else {
       ]);
       return { level: `data:audio/wav;base64,${level.toString('base64')}`, fanfare: `data:audio/mpeg;base64,${fanfare.toString('base64')}`, evolution: `data:audio/mpeg;base64,${evolution.toString('base64')}`, success: `data:audio/mpeg;base64,${success.toString('base64')}` };
     });
+    ipcMain.handle('language', event => { if (trusted(event)) return I18n.language; });
     ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
     ipcMain.handle('item-images', async event => {
       if (!trusted(event)) return;
@@ -152,7 +173,7 @@ else {
     ipcMain.handle('buy-item', (event, id) => { if (trusted(event)) return progress.buy(id); });
     ipcMain.handle('demo-balance', (event, balance) => {
       if (!trusted(event)) return;
-      if (usageStatus.source !== 'demo') throw new Error('잔액 설정은 체험 모드에서만 가능해요.');
+      if (usageStatus.source !== 'demo') throw new Error(t('m76'));
       return progress.setDemoBalance(balance);
     });
     ipcMain.handle('use-item', async (event, id, expected) => {
@@ -194,25 +215,29 @@ else {
       if (!trusted(event)) return;
       stopDrag();
       Menu.buildFromTemplate([
-        { label: 'Tokemon · 드래그로 이동 / 클릭하면 울음소리', enabled: false },
-        { label: '가방', click: () => pet.webContents.send('open-commerce', 'bag') },
-        { label: '상점', click: () => pet.webContents.send('open-commerce', 'shop') },
+        { label: t('m77'), enabled: false },
+        { label: t('m14'), click: () => pet.webContents.send('open-commerce', 'bag') },
+        { label: t('m15'), click: () => pet.webContents.send('open-commerce', 'shop') },
         { type: 'separator' },
-        { label: '포켓몬 선택 · 1세대', submenu: Array.from({ length: 8 }, (_, group) => ({
+        { label: t('m78'), submenu: Array.from({ length: 8 }, (_, group) => ({
           label: `#${String(group * 20 + 1).padStart(3, '0')}–#${String(Math.min(151, (group + 1) * 20)).padStart(3, '0')}`,
           submenu: Object.entries(species).slice(group * 20, (group + 1) * 20).map(([kind, entry]) => ({
-            label: `#${String(entry.id).padStart(3, '0')} ${entry.name}`,
+            label: `#${String(entry.id).padStart(3, '0')} ${I18n.name(entry.name)}`,
             click: () => pet.webContents.send('select-species-request', kind),
           })),
         })) },
-        { label: '음소거', type: 'checkbox', checked: muted, click: item => { muted = item.checked; pet.webContents.send('mute', muted); } },
-        { label: '사용량 연동', submenu: [['demo', '체험 (수동 입력)'], ['claude', 'Claude'], ['codex', 'Codex']].map(([source, label]) => ({
+        { label: t('m73'), type: 'checkbox', checked: muted, click: item => { muted = item.checked; pet.webContents.send('mute', muted); } },
+        { label: `${t('language')} / Language`, submenu: Object.entries(I18n.languages).map(([code, label]) => ({
+          label, type: 'radio', checked: I18n.language === code,
+          click: () => { void setLanguage(code); },
+        })) },
+        { label: t('m79'), submenu: [['demo', t('m80')], ['claude', 'Claude'], ['codex', 'Codex']].map(([source, label]) => ({
           label, type: 'radio', checked: usageStatus.source === source,
           click: () => { usage.select(source).catch(error => console.error('Usage source:', error.message)); },
         })) },
-        { label: '위치 초기화', click: () => { const p = homePosition(); pet.setPosition(p.x, p.y); void savePosition(); } },
-        { label: '현재 선택한 포켓몬 성장 초기화 · Lv.1', click: () => pet.webContents.send('reset-progress-request') },
-        { label: '종료', click: () => app.quit() },
+        { label: t('m81'), click: () => { const p = homePosition(); pet.setPosition(p.x, p.y); void savePosition(); } },
+        { label: t('m82'), click: () => pet.webContents.send('reset-progress-request') },
+        { label: t('m83'), click: () => app.quit() },
       ]).popup({ window: pet });
     });
     pet.on('blur', () => stopDrag());
