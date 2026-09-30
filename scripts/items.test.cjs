@@ -149,3 +149,48 @@ test('corrupt wallet, inventory and evolution saves cannot be silently overwritt
     assert.equal(await fs.readFile(path.join(dir, 'progress.json'), 'utf8'), raw);
   }
 });
+
+test('daily balls persist, serialize, follow local midnight and do not backfill or repeat on rollback', async t => {
+  const { dir } = await fixture(t);
+  let date = new Date(2026, 8, 29, 23, 59);
+  const store = createProgression(dir, () => date);
+  const results = await Promise.all([store.claimDailyReward(), store.claimDailyReward()]);
+  assert.equal(results[1].inventory['poke-ball'], 1);
+  assert.equal(results[1].balance, 0);
+  assert.equal((await createProgression(dir, () => date).claimDailyReward()).inventory['poke-ball'], 1);
+  date = new Date(2026, 8, 30, 0, 0);
+  assert.equal((await store.claimDailyReward()).inventory['poke-ball'], 2);
+  date = new Date(2026, 9, 5);
+  assert.equal((await store.claimDailyReward()).inventory['poke-ball'], 3);
+  date = new Date(2026, 8, 29);
+  assert.equal((await store.claimDailyReward()).inventory['poke-ball'], 3);
+  await store.reset();
+  assert.equal((await store.claimDailyReward()).inventory['poke-ball'], 3);
+});
+
+test('daily reward save failure can retry without losing or duplicating the reward', async t => {
+  const { dir } = await fixture(t);
+  const store = createProgression(dir, () => new Date(2026, 8, 29));
+  await fs.mkdir(path.join(dir, 'progress.json.tmp'));
+  await assert.rejects(store.claimDailyReward());
+  assert.deepEqual((await store.get()).inventory, {});
+  await fs.rmdir(path.join(dir, 'progress.json.tmp'));
+  assert.equal((await store.claimDailyReward()).inventory['poke-ball'], 1);
+});
+
+test('all three balls use their own shop prices and persist without changing growth', async t => {
+  const { dir, store } = await fixture(t);
+  await store.setDemoBalance(90000);
+  const before = await store.get();
+  for (const [id, price] of [['poke-ball', 10000], ['great-ball', 30000], ['ultra-ball', 50000]]) {
+    assert.equal(before.items.find(item => item.id === id).price, price);
+    const bought = await store.buy(id);
+    assert.equal(bought.inventory[id], 1);
+    assert.equal(bought.points, before.points);
+    await assert.rejects(store.use(id, bought));
+  }
+  const after = await createProgression(dir).get();
+  assert.equal(after.balance, 0);
+  assert.deepEqual(after.inventory, { 'poke-ball': 1, 'great-ball': 1, 'ultra-ball': 1 });
+  await assert.rejects(store.buy('poke-ball'));
+});

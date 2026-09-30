@@ -1,0 +1,608 @@
+{
+  "rarities": {
+    "common": {
+      "weight": 1760
+    },
+    "uncommon": {
+      "weight": 930
+    },
+    "rare": {
+      "weight": 310
+    },
+    "ultra": {
+      "weight": 100
+    }
+  },
+  "pokemon": {
+    "bulbasaur": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "charmander": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "squirtle": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "caterpie": {
+      "rarity": "common",
+      "reference": {
+        "rate": 44.9219,
+        "map": "ViridianForest",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "weedle": {
+      "rarity": "common",
+      "reference": {
+        "rate": 44.9219,
+        "map": "ViridianForest",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "pidgey": {
+      "rarity": "common",
+      "reference": {
+        "rate": 50,
+        "map": "Route1",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "rattata": {
+      "rarity": "common",
+      "reference": {
+        "rate": 50,
+        "map": "Route1",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "spearow": {
+      "rarity": "common",
+      "reference": {
+        "rate": 44.5313,
+        "map": "Route3",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "ekans": {
+      "rarity": "common",
+      "reference": {
+        "rate": 40.2344,
+        "map": "Route11",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "pikachu": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 25,
+        "map": "PowerPlant",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "sandshrew": {
+      "rarity": "common",
+      "reference": {
+        "rate": 40.2344,
+        "map": "Route11",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "nidoran-f": {
+      "rarity": "common",
+      "reference": {
+        "rate": 39.4531,
+        "map": "Route22",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "nidoran-m": {
+      "rarity": "common",
+      "reference": {
+        "rate": 39.4531,
+        "map": "Route22",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "clefairy": {
+      "rarity": "rare",
+      "reference": {
+        "rate": 6.25,
+        "map": "MtMoonB2F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "vulpix": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 20.3125,
+        "map": "Route8",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "jigglypuff": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 10.5469,
+        "map": "Route3",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "zubat": {
+      "rarity": "common",
+      "reference": {
+        "rate": 78.9063,
+        "map": "MtMoon1F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "oddish": {
+      "rarity": "common",
+      "reference": {
+        "rate": 34.7656,
+        "map": "Route5",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "paras": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 15.2344,
+        "map": "SafariZoneEast",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "venonat": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 19.5313,
+        "map": "Route12",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "diglett": {
+      "rarity": "common",
+      "reference": {
+        "rate": 94.5313,
+        "map": "DiglettsCave",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "meowth": {
+      "rarity": "common",
+      "reference": {
+        "rate": 30.4688,
+        "map": "Route7",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "psyduck": {
+      "rarity": "common",
+      "reference": {
+        "rate": 35.1563,
+        "map": "SeafoamIslandsB3F",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "mankey": {
+      "rarity": "common",
+      "reference": {
+        "rate": 30.4688,
+        "map": "Route7",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "growlithe": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 20.3125,
+        "map": "Route8",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "poliwag": {
+      "rarity": "common",
+      "reference": {
+        "rate": 50,
+        "map": "SuperRod.Group1",
+        "version": "both",
+        "method": "super-rod"
+      }
+    },
+    "abra": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 15.2344,
+        "map": "Route24",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "machop": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 19.9219,
+        "map": "VictoryRoad1F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "bellsprout": {
+      "rarity": "common",
+      "reference": {
+        "rate": 34.7656,
+        "map": "Route5",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "tentacool": {
+      "rarity": "common",
+      "reference": {
+        "rate": 100,
+        "map": "Route21",
+        "version": "red",
+        "method": "surfing"
+      }
+    },
+    "geodude": {
+      "rarity": "common",
+      "reference": {
+        "rate": 29.6875,
+        "map": "MtMoonB2F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "ponyta": {
+      "rarity": "common",
+      "reference": {
+        "rate": 39.8438,
+        "map": "PokemonMansion1F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "slowpoke": {
+      "rarity": "common",
+      "reference": {
+        "rate": 50,
+        "map": "SuperRod.Group5",
+        "version": "both",
+        "method": "super-rod"
+      }
+    },
+    "magnemite": {
+      "rarity": "common",
+      "reference": {
+        "rate": 29.6875,
+        "map": "PowerPlant",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "farfetchd": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "doduo": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 24.6094,
+        "map": "Route16",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "seel": {
+      "rarity": "common",
+      "reference": {
+        "rate": 35.1563,
+        "map": "SeafoamIslandsB2F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "grimer": {
+      "rarity": "common",
+      "reference": {
+        "rate": 49.6094,
+        "map": "PokemonMansionB1F",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "shellder": {
+      "rarity": "common",
+      "reference": {
+        "rate": 50,
+        "map": "SuperRod.Group4",
+        "version": "both",
+        "method": "super-rod"
+      }
+    },
+    "gastly": {
+      "rarity": "common",
+      "reference": {
+        "rate": 89.4531,
+        "map": "PokemonTower3F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "onix": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 29.2969,
+        "map": "VictoryRoad1F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "drowzee": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 25,
+        "map": "Route11",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "krabby": {
+      "rarity": "common",
+      "reference": {
+        "rate": 50,
+        "map": "SuperRod.Group4",
+        "version": "both",
+        "method": "super-rod"
+      }
+    },
+    "voltorb": {
+      "rarity": "common",
+      "reference": {
+        "rate": 40.2344,
+        "map": "Route10",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "exeggcute": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 19.5313,
+        "map": "SafariZoneCenter",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "cubone": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 10.1563,
+        "map": "PokemonTower7F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "hitmonlee": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "hitmonchan": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "lickitung": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "koffing": {
+      "rarity": "common",
+      "reference": {
+        "rate": 49.6094,
+        "map": "PokemonMansionB1F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "rhyhorn": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 19.9219,
+        "map": "SafariZoneCenter",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "chansey": {
+      "rarity": "rare",
+      "reference": {
+        "rate": 9.7656,
+        "map": "CeruleanCaveB1F",
+        "version": "red",
+        "method": "walking"
+      },
+      "note": "Safari Zone rarity; later Cerulean Cave availability does not make it common."
+    },
+    "tangela": {
+      "rarity": "uncommon",
+      "reference": {
+        "rate": 10.5469,
+        "map": "Route21",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "kangaskhan": {
+      "rarity": "ultra",
+      "reference": {
+        "rate": 4.2969,
+        "map": "SafariZoneEast",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "horsea": {
+      "rarity": "common",
+      "reference": {
+        "rate": 35.1563,
+        "map": "SeafoamIslandsB4F",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "goldeen": {
+      "rarity": "common",
+      "reference": {
+        "rate": 50,
+        "map": "SuperRod.Group2",
+        "version": "both",
+        "method": "super-rod"
+      }
+    },
+    "staryu": {
+      "rarity": "common",
+      "reference": {
+        "rate": 29.6875,
+        "map": "SeafoamIslandsB4F",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "mr-mime": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "scyther": {
+      "rarity": "ultra",
+      "reference": {
+        "rate": 4.2969,
+        "map": "SafariZoneCenter",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "jynx": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "electabuzz": {
+      "rarity": "rare",
+      "reference": {
+        "rate": 5.4688,
+        "map": "PowerPlant",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "magmar": {
+      "rarity": "rare",
+      "reference": {
+        "rate": 9.7656,
+        "map": "PokemonMansion3F",
+        "version": "green",
+        "method": "walking"
+      },
+      "note": "Green only, Pokemon Mansion only."
+    },
+    "pinsir": {
+      "rarity": "ultra",
+      "reference": {
+        "rate": 4.2969,
+        "map": "SafariZoneCenter",
+        "version": "green",
+        "method": "walking"
+      }
+    },
+    "tauros": {
+      "rarity": "ultra",
+      "reference": {
+        "rate": 4.2969,
+        "map": "SafariZoneWest",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "magikarp": {
+      "rarity": "common",
+      "reference": {
+        "rate": 100,
+        "map": "Any fishing water",
+        "version": "both",
+        "method": "old-rod"
+      }
+    },
+    "lapras": {
+      "rarity": "ultra",
+      "basis": "user"
+    },
+    "ditto": {
+      "rarity": "common",
+      "reference": {
+        "rate": 34.7656,
+        "map": "Route23",
+        "version": "red",
+        "method": "walking"
+      }
+    },
+    "eevee": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "porygon": {
+      "rarity": "rare",
+      "basis": "user"
+    },
+    "omanyte": {
+      "rarity": "ultra",
+      "basis": "user"
+    },
+    "kabuto": {
+      "rarity": "ultra",
+      "basis": "user"
+    },
+    "aerodactyl": {
+      "rarity": "ultra",
+      "basis": "user"
+    },
+    "snorlax": {
+      "rarity": "ultra",
+      "basis": "user"
+    },
+    "dratini": {
+      "rarity": "rare",
+      "reference": {
+        "rate": 25,
+        "map": "SuperRod.Group6",
+        "version": "both",
+        "method": "super-rod"
+      },
+      "note": "Safari Zone only, requires Super Rod."
+    }
+  }
+}
+

@@ -45,7 +45,7 @@
       <div class="growth-detail"><span id="state-label"><span data-i18n="m0">활발</span></span><span id="exp-value">0 / 100</span></div>
     </section>
     <nav class="commerce-nav" aria-label="아이템 메뉴" data-i18n-aria-label="m92">
-      <button id="open-bag" type="button"><span data-i18n="m14">가방</span></button><button id="open-shop" type="button"><span data-i18n="m15">상점</span></button>
+      <button id="open-bag" type="button"><span data-i18n="m14">가방</span></button><button id="open-shop" type="button"><span data-i18n="m15">상점</span></button><button id="open-wild" type="button" disabled><span data-i18n="wildNav">야생</span></button>
     </nav>
     <section class="preview" aria-label="토큰 미연동 상태 체험" data-i18n-aria-label="m93">
       <label id="remaining-label" for="remaining"><span data-i18n="m98">잔여량 체험</span><output id="remaining-value" for="remaining">100%</output></label>
@@ -76,8 +76,27 @@
     <div id="item-list"></div>
     <p class="commerce-footnote"><span data-i18n="m107">사용 토큰 1개 = 보유 토큰 1개</span><br><span data-i18n="m108">구매해도 EXP는 유지돼요.</span></p>
   </dialog>
+  <dialog id="wild-encounter" aria-labelledby="wild-title">
+    <header class="commerce-header"><h1 id="wild-title" data-i18n="wildTitle">오늘의 야생 포켓몬</h1><button id="close-wild" type="button" aria-label="닫기" data-i18n-aria-label="m96">×</button></header>
+    <div class="wild-scene" data-capture="idle"><canvas id="wild-sprite" width="128" height="128" aria-hidden="true" hidden></canvas><div class="capture-flash" aria-hidden="true"></div><div class="capture-ball" aria-hidden="true"><span class="capture-top"></span><span class="capture-bottom"></span><span class="capture-button"></span></div><div class="capture-stars" aria-hidden="true">&#10022; &#9733; &#10022;</div></div>
+    <p id="wild-feedback" role="status"></p>
+    <h2 id="wild-name"></h2>
+    <span id="wild-rarity"></span>
+    <p class="wild-note" data-i18n="wildNote">매일 새로운 야생 포켓몬을 만나요. 포획에 실패하면 도망갈 수 있어요.</p>
+    <p id="wild-flee-chance" class="wild-note"></p>
+    <div id="wild-balls" aria-label="Poké Balls"></div>
+    <p id="capture-result" role="status" aria-live="polite"></p>
+    <time id="wild-date"></time>
+  </dialog>
+  <dialog id="party" aria-labelledby="party-title">
+    <header class="commerce-header"><h1 id="party-title" data-i18n="partyTitle">파티</h1><button id="close-party" type="button" data-i18n-aria-label="m96">×</button></header>
+    <p class="wild-note" data-i18n="partyNote">포켓몬을 선택하면 함께할 수 있어요. 같은 종류는 기존 성장 기록을 유지해요.</p>
+    <div id="party-list"></div>
+  </dialog>
   <script src="i18n.js"></script>
   <script src="animation.js"></script>
+  <script src="capture-animation.js"></script>
+  <script src="wild-view.js"></script>
   <script src="growth-audio.js"></script>
   <script src="recall.js"></script>
   <script src="renderer.js"></script>

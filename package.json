@@ -10,9 +10,10 @@
     "test:smoke": "electron scripts/smoke.cjs",
     "test:recall": "electron scripts/recall-smoke.cjs",
     "test:browser": "node scripts/browser-smoke.cjs",
+    "test:wild": "node scripts/browser-smoke.cjs --wild",
     "test:items": "electron scripts/items-smoke.cjs",
-    "test": "node --test scripts/progression.test.cjs scripts/items.test.cjs scripts/usage.test.cjs scripts/i18n.test.cjs",
-    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/growth-audio.js && node --check src/recall.js && node --check src/renderer.js && node --check src/progression.cjs && node --check src/items.cjs && node --check src/tuning.cjs && node --check src/usage/files.cjs && node --check src/usage/claude.cjs && node --check src/usage/codex.cjs && node --check src/usage/sync.cjs && node --check src/i18n.js",
+    "test": "node --test scripts/progression.test.cjs scripts/items.test.cjs scripts/usage.test.cjs scripts/i18n.test.cjs scripts/wild.test.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/animation.js && node --check src/growth-audio.js && node --check src/recall.js && node --check src/renderer.js && node --check src/progression.cjs && node --check src/items.cjs && node --check src/tuning.cjs && node --check src/usage/files.cjs && node --check src/usage/claude.cjs && node --check src/usage/codex.cjs && node --check src/usage/sync.cjs && node --check src/i18n.js && node --check src/wild.cjs && node --check src/wild-view.js && node --check src/capture-animation.js",
     "test:i18n": "electron scripts/i18n-smoke.cjs"
   },
   "build": {

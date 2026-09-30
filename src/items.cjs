@@ -3,6 +3,9 @@ const { evolutionItemPrice } = require('./tuning.cjs');
 
 // Kanto item evolutions. Linking Cord replaces the four trade evolutions.
 const items = {
+  'poke-ball': { name: '몬스터볼', symbol: '●', color: 'fire', price: 10000, targets: {} },
+  'great-ball': { name: '슈퍼볼', symbol: '●', color: 'water', price: 30000, targets: {} },
+  'ultra-ball': { name: '하이퍼볼', symbol: '●', color: 'thunder', price: 50000, targets: {} },
   'fire-stone': { name: '불꽃의돌', symbol: '불', color: 'fire', targets: { vulpix: 'ninetales', growlithe: 'arcanine', eevee: 'flareon' } },
   'water-stone': { name: '물의돌', symbol: '물', color: 'water', targets: { poliwhirl: 'poliwrath', shellder: 'cloyster', staryu: 'starmie', eevee: 'vaporeon' } },
   'thunder-stone': { name: '천둥의돌', symbol: '번개', color: 'thunder', targets: { pikachu: 'raichu', eevee: 'jolteon' } },
@@ -14,7 +17,7 @@ const items = {
 function catalog(kind, inventory) {
   return Object.entries(items).map(([id, item]) => ({
     id, name: item.name, symbol: item.symbol, color: item.color,
-    price: evolutionItemPrice, count: inventory[id] ?? 0,
+    price: item.price ?? evolutionItemPrice, count: inventory[id] ?? 0,
     target: item.targets[kind] ?? null,
     targetName: species[item.targets[kind]]?.name ?? null,
   }));

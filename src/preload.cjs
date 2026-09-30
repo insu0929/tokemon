@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('pet', {
   assets: kind => ipcRenderer.invoke('assets', kind),
   growthAudio: () => ipcRenderer.invoke('growth-audio'),
   progress: () => ipcRenderer.invoke('progress'),
+  capture: (id, expected) => ipcRenderer.invoke('capture', id, expected),
   itemImages: () => ipcRenderer.invoke('item-images'),
   buyItem: id => ipcRenderer.invoke('buy-item', id),
   setDemoBalance: balance => ipcRenderer.invoke('demo-balance', balance),

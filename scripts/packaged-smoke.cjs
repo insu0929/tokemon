@@ -89,6 +89,6 @@ function send(method, params = {}) {
 })().catch(error => {
   console.error(error);
   socket?.close();
-  if (child.pid) spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+  if (child.pid) spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
   process.exitCode = 1;
 });

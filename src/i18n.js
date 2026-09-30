@@ -3,6 +3,24 @@
 (function (root) {
   'use strict';
   const messages = {
+  "captureFled": {"ko":"포켓몬이 도망갔어요. 내일 다시 만나요!","en":"The Pokémon fled. Come back tomorrow!","ja":"ポケモンは逃げてしまった。明日また会いましょう！","zh-CN":"宝可梦逃走了。明天再来吧！"},
+  "wildFleeChance": {"ko":"포획 실패 시 도망 확률: {0}%","en":"Flee chance after a failed catch: {0}%","ja":"捕獲失敗時に逃げる確率：{0}%","zh-CN":"捕获失败后的逃跑概率：{0}%"},
+  "captureSuccess": {"ko":"포획 성공! 파티에 합류했어요.","en":"Caught! Added to your party.","ja":"捕獲成功！パーティに加わりました。","zh-CN":"捕获成功！已加入队伍。"},
+  "captureFailed": {"ko":"볼에서 빠져나왔어요! 다시 도전할 수 있어요.","en":"It broke free! You can try again.","ja":"ボールから出てしまった！もう一度挑戦できます。","zh-CN":"它挣脱了！可以再次尝试。"},
+  "captureTrying": {"ko":"몬스터볼을 던지는 중…","en":"Throwing a Poké Ball…","ja":"ボールを投げています…","zh-CN":"正在投出精灵球…"},
+  "captureError": {"ko":"포획하지 못했어요. 보유 볼과 오늘의 만남을 다시 확인해 주세요.","en":"Could not capture. Check your balls and today’s encounter.","ja":"捕獲できませんでした。ボールと今日の出会いを確認してください。","zh-CN":"无法捕获。请检查精灵球和今日相遇。"},
+  "partyTitle": {"ko":"파티","en":"Party","ja":"パーティ","zh-CN":"队伍"},
+  "partyNote": {"ko":"포켓몬을 선택하면 함께할 수 있어요. 같은 종류는 기존 성장 기록을 유지해요.","en":"Select a Pokémon as your companion. Same-species catches keep existing growth.","ja":"ポケモンを選んで仲間に。同じ種類は成長記録を引き継ぎます。","zh-CN":"选择宝可梦作为伙伴。同种宝可梦保留已有成长记录。"},
+  "wildNav": { "ko": "야생", "en": "Wild", "ja": "野生", "zh-CN": "野生" },
+  "wildTitle": { "ko": "오늘의 야생 포켓몬", "en": "Today's wild Pokémon", "ja": "今日の野生ポケモン", "zh-CN": "今日野生宝可梦" },
+  "wildFound": { "ko": "야생의 {0} 발견!", "en": "A wild {0} appeared!", "ja": "野生の{0}が現れた！", "zh-CN": "野生的{0}出现了！" },
+  "wildNote": { "ko": "매일 새로운 야생 포켓몬을 만나요. 포획에 실패하면 도망갈 수 있어요.", "en": "Meet a new wild Pokémon each day. It may flee after a failed catch.", "ja": "毎日新しい野生ポケモンに出会えます。捕獲に失敗すると逃げることがあります。", "zh-CN": "每天遇见一只新的野生宝可梦。捕获失败后可能逃跑。" },
+  "wildLoading": { "ko": "포켓몬을 불러오는 중…", "en": "Loading Pokémon…", "ja": "ポケモンを読み込み中…", "zh-CN": "正在加载宝可梦…" },
+  "wildLoadFailed": { "ko": "모습을 불러오지 못했어요. 다시 열어 주세요.", "en": "Could not load the sprite. Please reopen this window.", "ja": "姿を読み込めませんでした。もう一度開いてください。", "zh-CN": "无法加载形象。请重新打开此窗口。" },
+  "rarity_common": { "ko": "일반", "en": "Common", "ja": "コモン", "zh-CN": "普通" },
+  "rarity_uncommon": { "ko": "고급", "en": "Uncommon", "ja": "アンコモン", "zh-CN": "少见" },
+  "rarity_rare": { "ko": "희귀", "en": "Rare", "ja": "レア", "zh-CN": "稀有" },
+  "rarity_ultra": { "ko": "초희귀", "en": "Ultra rare", "ja": "ウルトラレア", "zh-CN": "极稀有" },
   "m0": {
     "ko": "활발",
     "en": "Lively",
@@ -106,10 +124,10 @@
     "zh-CN": "选择给{0}使用的道具。每次消耗1个。"
   },
   "m17": {
-    "ko": "진화 아이템을 구입해 가방에 담으세요.",
-    "en": "Buy evolution items for your bag.",
-    "ja": "進化の道具を買ってバッグに入れましょう。",
-    "zh-CN": "购买进化道具并放入背包。"
+    "ko": "아이템을 구입해 가방에 담으세요. 매일 몬스터볼 1개가 자동 지급돼요.",
+    "en": "Buy items for your bag. Receive one free Poké Ball each day.",
+    "ja": "道具を買ってバッグに入れましょう。毎日モンスターボールを1個もらえます。",
+    "zh-CN": "购买道具放入背包。每天自动获得1个精灵球。"
   },
   "m18": {
     "ko": "가방이 비어 있어요. 상점에서 진화 아이템을 구입해 보세요.",
@@ -1571,6 +1589,9 @@
     "ja": "ミュウ",
     "zh-CN": "梦幻"
   },
+  "몬스터볼": { "ko": "몬스터볼", "en": "Poké Ball", "ja": "モンスターボール", "zh-CN": "精灵球" },
+  "슈퍼볼": { "ko": "슈퍼볼", "en": "Great Ball", "ja": "スーパーボール", "zh-CN": "超级球" },
+  "하이퍼볼": { "ko": "하이퍼볼", "en": "Ultra Ball", "ja": "ハイパーボール", "zh-CN": "高级球" },
   "불꽃의돌": {
     "ko": "불꽃의돌",
     "en": "Fire Stone",
