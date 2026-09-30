@@ -7,7 +7,8 @@ const { spawn } = require('node:child_process');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
 const catalog = require('../src/species.json');
-const { snapshot } = require('../src/progression.cjs');
+const { snapshot, createProgression } = require('../src/progression.cjs');
+const wildOnly = process.argv.includes('--wild');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 let browser, socket, server;
 const pending = new Map();
@@ -25,6 +26,9 @@ function send(method, params = {}) {
   const data = path.join(root, '.local');
   await fs.mkdir(data, { recursive: true });
   const profile = await fs.mkdtemp(path.join(data, 'browser-recall-'));
+  let encounterDate = new Date(2026, 8, 29, 12);
+  let encounterRoll = 0.9999;
+  const encounterStore = wildOnly ? createProgression(path.join(profile, 'progress'), () => encounterDate, () => encounterRoll) : null;
   const asset = async (file, mime) => `data:${mime};base64,${(await fs.readFile(path.join(root, 'assets', file))).toString('base64')}`;
   const species = {};
   for (const [name, entry] of Object.entries(catalog)) species[name] = { ...entry, evolutionName: catalog[entry.evolution?.species]?.name, sprite: await asset(`${name}.gif`, 'image/gif'), cry: await asset(`${name}.ogg`, 'audio/ogg') };
@@ -43,7 +47,8 @@ function send(method, params = {}) {
     const events = {};
     window.pet = {
       assets: async name => testSpecies[name || 'pikachu'], growthAudio: async () => testAudio,
-      progress: async () => testGrowth, usageStatus: async () => testStatus,
+      progress: async () => ${wildOnly ? "(testGrowth = await (await fetch('/daily')).json())" : 'testGrowth'}, usageStatus: async () => testStatus,
+      capture: async (id, expected) => (await fetch('/capture', { method: 'POST', body: JSON.stringify({ id, expected }) })).json(),
       selectSpecies: async kind => { selected = kind; save(); return testGrowth = snap(); },
       onSelectSpecies: fn => events.select = fn,
       addPreviewTokens: async tokens => { records[selected] = (records[selected] || 0) + tokens * 10000; save(); return testGrowth = snap(); },
@@ -57,10 +62,25 @@ function send(method, params = {}) {
   `;
   server = http.createServer(async (req, res) => {
     try {
+      if (wildOnly && req.url === '/daily') {
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify(await encounterStore.claimDailyReward()));
+      }
+      if (wildOnly && req.url === '/capture' && req.method === 'POST') {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const { id, expected } = JSON.parse(body);
+        return res.end(JSON.stringify(await encounterStore.capture(id, expected)));
+      }
+      if (wildOnly && req.url === '/advance' && req.method === 'POST') {
+        encounterDate = new Date(2026, 8, 30, 0, 1);
+        return res.end('ok');
+      }
       if (req.url === '/bridge.js') { res.setHeader('Content-Type', 'text/javascript'); return res.end(bridge); }
       const filename = req.url === '/' ? 'index.html' : req.url.slice(1);
       if (!/^[\w.-]+$/.test(filename)) { res.writeHead(404); return res.end(); }
       let content = await fs.readFile(path.join(root, 'src', filename));
+      if (wildOnly && filename === 'index.html') content = content.toString().replace("default-src 'none';", "default-src 'none'; connect-src 'self';");
       if (filename === 'index.html') content = content.toString().replace('<script src="animation.js">', '<script src="bridge.js"></script><script src="animation.js">');
       res.setHeader('Content-Type', filename.endsWith('.html') ? 'text/html; charset=utf-8' : filename.endsWith('.css') ? 'text/css' : 'text/javascript');
       res.end(content);
@@ -108,6 +128,97 @@ function send(method, params = {}) {
   await send('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/` });
   await wait('typeof ready !== "undefined" && ready');
   await evaluate('testMute()');
+  if (wildOnly) {
+    await wait('wildView.dialog.open && !wildView.canvas.hidden');
+    const first = await evaluate('growth.wildEncounter');
+    assert.equal(first.species, 'snorlax');
+    assert.equal(first.rarity, 'ultra');
+    assert.equal(await evaluate('document.querySelector("#wild-rarity").textContent'), '초희귀');
+    assert.equal(await evaluate('growth.inventory["poke-ball"]'), 1);
+    assert.equal(await evaluate('displayedSpecies'), 'pikachu', 'Wild encounter does not replace the companion');
+    assert.equal(await evaluate('wildView.dialog.scrollWidth <= wildView.dialog.clientWidth'), true);
+    await shot('wild-ko');
+    await evaluate('document.querySelector("#close-wild").click()');
+    const generation = await evaluate('testGeneration');
+    await send('Page.reload');
+    await wait(`typeof ready !== "undefined" && ready && testGeneration !== ${generation}`);
+    assert.equal(await evaluate('wildView.dialog.open'), false, 'Already viewed encounter does not interrupt again');
+    assert.deepEqual(await evaluate('growth.wildEncounter'), first);
+    assert.equal(await evaluate('growth.inventory["poke-ball"]'), 1);
+    await evaluate('document.querySelector("#open-wild").click()');
+    await wait('wildView.dialog.open && !wildView.canvas.hidden');
+    for (const language of ['en', 'ja', 'zh-CN']) {
+      await evaluate(`applyLanguage('${language}')`);
+      assert.equal(await evaluate('wildView.dialog.scrollWidth <= wildView.dialog.clientWidth'), true);
+      await shot(`wild-${language}`);
+    }
+    await evaluate('document.querySelector("#close-wild").click(); applyLanguage("ko")');
+    await evaluate('fetch("/advance", { method: "POST" })');
+    await evaluate('grow(() => window.pet.progress(), () => "", true)');
+    await wait('wildView.dialog.open && !wildView.canvas.hidden');
+    assert.equal(await evaluate('growth.wildEncounter.date'), '2026-09-30');
+    assert.equal(await evaluate('growth.inventory["poke-ball"]'), 2);
+    assert.equal(await evaluate('displayedSpecies'), 'pikachu');
+    await evaluate(`window.capturePhases = []; window.originalRandom = Math.random; Math.random = () => .8;
+      new MutationObserver(records => { for (const record of records) if (record.attributeName === 'data-capture') capturePhases.push(wildView.captureAnimation.scene.dataset.capture); }).observe(wildView.captureAnimation.scene, { attributes: true });`);
+    await evaluate('document.querySelector("#wild-balls button").click()');
+    await wait('wildView.captureAnimation.scene.dataset.capture === "throw"');
+    assert.equal(await evaluate('document.querySelector("#capture-result").textContent === I18n.t("captureTrying")'), true);
+    await evaluate('document.querySelector("#close-wild").click(); wildView.dialog.dispatchEvent(new Event("cancel", { cancelable: true }))');
+    assert.equal(await evaluate('wildView.dialog.open'), true);
+    await shot('capture-throw');
+
+    await wait('!wildView.busy && growth.inventory["poke-ball"] === 1');
+    assert.equal(await evaluate('growth.wildEncounter.caught'), false);
+    assert.equal(await evaluate('wildView.captureAnimation.scene.dataset.shakes'), '2');
+    assert.equal(await evaluate('wildView.captureAnimation.scene.dataset.capture'), 'failed');
+    assert.equal(await evaluate('getComputedStyle(wildView.canvas).opacity'), '1');
+    assert.ok((await evaluate('capturePhases')).includes('breakout'));
+    await shot('capture-breakout');
+    await evaluate('capturePhases.length = 0');
+    encounterRoll = 0;
+    await evaluate('document.querySelector("#wild-balls button").click()');
+    await wait('!wildView.busy && growth.wildEncounter.caught');
+    assert.equal(await evaluate('growth.inventory["poke-ball"]'), 0);
+    assert.equal(await evaluate('wildView.captureAnimation.scene.dataset.shakes'), '3');
+    assert.equal(await evaluate('wildView.captureAnimation.scene.dataset.capture'), 'caught');
+    assert.equal(await evaluate('getComputedStyle(wildView.canvas).visibility'), 'hidden');
+    assert.deepEqual(await evaluate('capturePhases.filter((phase, i) => phase !== "throw" || i === 0)'), ['throw', 'absorb', 'bounce', 'shake', 'shake', 'shake', 'caught']);
+    await evaluate('Math.random = originalRandom');
+    await shot('capture-success');
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    for (const shakes of [0, 1, 2]) {
+      await evaluate(`Math.random = () => ${(shakes + .1) / 3}; wildView.captureAnimation.play({ caught: false, fled: false }, 'great-ball')`);
+      assert.equal(await evaluate('wildView.captureAnimation.scene.dataset.shakes'), String(shakes));
+      assert.equal(await evaluate('wildView.captureAnimation.scene.dataset.capture'), 'failed');
+    }
+    await evaluate('wildView.captureAnimation.play({ caught: false, fled: true }, "ultra-ball")');
+    assert.equal(await evaluate('wildView.captureAnimation.scene.dataset.capture'), 'fled');
+    assert.equal(await evaluate('getComputedStyle(wildView.canvas).opacity'), '0');
+    await evaluate('Math.random = originalRandom; wildView.captureAnimation.reset(); wildView.update(growth.wildEncounter)');
+    await send('Emulation.setEmulatedMedia', { features: [] });
+
+    assert.equal(await evaluate('growth.party.some(member => member.starter === "snorlax")'), true);
+    assert.equal(await evaluate('[...document.querySelectorAll("#wild-balls button")].every(button => button.disabled)'), true);
+    await shot('wild-caught');
+    await evaluate('wildView.update({ ...growth.wildEncounter, caught: false, fled: true })');
+    assert.equal(await evaluate('document.querySelector("#capture-result").textContent === I18n.t("captureFled")'), true);
+    assert.equal(await evaluate('[...document.querySelectorAll("#wild-balls button")].every(button => button.disabled)'), true);
+    assert.equal(await evaluate('document.querySelector("#wild-flee-chance").textContent.includes("40%")'), true);
+    await shot('wild-fled');
+    await evaluate('wildView.update(growth.wildEncounter)');
+
+    await evaluate('document.querySelector("#close-wild").click(); document.querySelector("#open-party").click()');
+    assert.equal(await evaluate('document.querySelectorAll("#party-list button").length'), 2);
+    assert.equal(await evaluate('partyDialog.scrollWidth <= partyDialog.clientWidth'), true);
+    await shot('wild-party');
+    await evaluate('document.querySelectorAll("#party-list button")[1].click()');
+    await wait('!addingTokens && displayedSpecies === "snorlax"');
+    assert.equal(await evaluate('partyDialog.open'), false);
+    assert.deepEqual(errors, []);
+    console.log('PASS: daily encounters, capture failure/retry/success, ball consumption, party registration/selection, four languages, 192px layout, reload and midnight reward');
+    return;
+  }
   // Decode every bundled animation and cry; exercise the actual selection UI handler.
   await evaluate(`window.catalogSheet = document.createElement('canvas'); catalogSheet.width = 1200; catalogSheet.height = 16 * 180;
     window.sheetContext = catalogSheet.getContext('2d'); sheetContext.fillStyle = '#edf2e6'; sheetContext.fillRect(0, 0, 1200, 2880);

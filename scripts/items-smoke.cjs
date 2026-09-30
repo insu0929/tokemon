@@ -29,11 +29,15 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(root, `items-${name}.png`), (await window.webContents.capturePage()).toPNG());
   };
   await wait('ready');
+  const daily = await evaluate('growth.wildEncounter');
+  assert.ok(daily, 'Startup creates a saved wild encounter');
+  assert.equal(await evaluate('growth.inventory["poke-ball"]'), 1);
+  await evaluate('document.querySelector("#close-wild").click()');
   // Silence audio without shortening the actual item evolution sequence.
   window.webContents.send('mute', true);
   await evaluate('document.querySelector("#open-shop").click()');
   assert.equal(await evaluate('commerce.open'), true);
-  assert.equal(await evaluate('document.querySelectorAll(".item-card").length'), 6);
+  assert.equal(await evaluate('document.querySelectorAll(".item-card").length'), 9);
   assert.equal(await evaluate('(async () => { const images = [...document.querySelectorAll(".item-symbol img")]; await Promise.all(images.map(image => image.decode())); return images.length === 6 && images.every(image => image.naturalWidth > 0 && image.src.startsWith("data:image/png;base64,")); })()'), true, 'All six bundled item images decode');
   assert.equal(await evaluate('[...document.querySelectorAll(".item-action")].every(b => b.disabled)'), true);
   await evaluate('document.querySelector("#demo-wallet-tools").open = true; document.querySelector("#demo-balance").value = "1000000"; document.querySelector("#demo-wallet").requestSubmit()');
@@ -63,6 +67,8 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate('displayedSpecies'), 'raichu', 'Reload retains item evolution');
   assert.equal(await evaluate('growth.balance'), 800000);
   assert.equal(await evaluate('growth.inventory["moon-stone"]'), 1);
+  assert.deepEqual(await evaluate('growth.wildEncounter'), daily, 'Reload does not reroll the encounter');
+  assert.equal(await evaluate('growth.inventory["poke-ball"]'), 1, 'Reload does not duplicate the daily ball');
   await usage.select('codex');
   await wait('usage.source === "codex"');
   await evaluate('openCommerce("shop")');

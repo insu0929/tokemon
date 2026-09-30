@@ -1,4 +1,21 @@
 :root { color-scheme: light; font-family: "Malgun Gothic", "Yu Gothic", "Microsoft YaHei", sans-serif; --monster-width: 144px; }
+#open-wild { position: relative; }
+#open-wild.has-new-wild::after { content: ''; position: absolute; right: 2px; top: 2px; width: 6px; height: 6px; background: #e05b45; border-radius: 50%; }
+#wild-encounter { width: calc(100% - 12px); max-width: 310px; max-height: calc(100% - 16px); overflow-y: auto; padding: 10px; border: 2px solid #48664c; border-radius: 10px; background: #fffde9; color: #51412a; text-align: center; font-size: 11px; box-shadow: 0 4px 12px #0003; }
+#wild-encounter::backdrop { background: #25302555; }
+#wild-title { font-size: 13px; text-align: left; overflow-wrap: anywhere; }
+#close-wild { flex-shrink: 0; font: inherit; font-size: 18px; min-width: 26px; border: 1px solid #b6b394; border-radius: 5px; background: #f4eed0; color: #51412a; cursor: pointer; }
+#close-wild:focus-visible { outline: 2px solid #407b9c; }
+.wild-scene { display: flex; justify-content: center; align-items: flex-end; height: 80px; margin: 6px 0; padding-bottom: 6px; border-radius: 8px; background: radial-gradient(ellipse at 50% 90%, #7eaa6480 0 28%, transparent 29%), linear-gradient(#e8f3db 70%, #b9d899 70%); }
+#wild-sprite { max-width: 80px; max-height: 80px; width: auto; height: auto; image-rendering: pixelated; }
+#wild-name { margin: 8px 0; font-size: 18px; overflow-wrap: anywhere; }
+#wild-rarity { display: inline-block; padding: 3px 10px; border: 1px solid #b4b8a9; border-radius: 12px; background: #e9eadd; font-weight: bold; }
+#wild-rarity[data-rarity="uncommon"] { background: #ddeefd; border-color: #9abedb; }
+#wild-rarity[data-rarity="rare"] { background: #ece0f5; border-color: #bc98d6; }
+#wild-rarity[data-rarity="ultra"] { background: #fff0b5; border-color: #cba13f; }
+.wild-note { margin: 14px 0 8px; line-height: 1.6; overflow-wrap: anywhere; }
+#wild-date { font-size: 10px; color: #79745f; }
+#wild-feedback:empty { display: none; }
 #species-label { min-width: 0; overflow-wrap: anywhere; }
 .item-heading strong, .item-action { overflow-wrap: anywhere; }
 .growth-detail { gap: 4px; }
@@ -201,3 +218,55 @@ body[data-recall="releasing"] .ball-button { opacity: 0; }
   body[data-recall="recalling"] #recall-pose { visibility: hidden; }
   body[data-recall="recalling"] #pokeball { opacity: 1; }
 }
+
+/* Ball icons use the same compact footprint as the item sprites. */
+.item-symbol.ball-symbol {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #263144;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, #e74d55 0 44%, #263144 44% 56%, #fff 56%);
+  font-size: 0;
+}
+.item-symbol.ball-symbol::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #263144;
+  border-radius: 50%;
+  background: #fff;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.item-symbol.great-ball { background: linear-gradient(to bottom, #3687df 0 44%, #263144 44% 56%, #fff 56%); }
+.item-symbol.ultra-ball { background: linear-gradient(to bottom, #e5bf3d 0 15%, #343849 15% 44%, #263144 44% 56%, #fff 56%); }
+#wild-balls, #party-list { display: grid; gap: 6px; margin: 10px 0; }
+#wild-balls button, #party-list button { padding: 8px; border: 1px solid #ccd8ce; border-radius: 8px; background: #f6faf4; color: #263144; cursor: pointer; }
+#wild-balls button:disabled, #party-list button:disabled { opacity: .55; cursor: default; }
+#capture-result { font-size: 12px; min-height: 2em; }
+#capture-result:empty { display: none; }
+#wild-encounter .wild-note { font-size: 10px; margin: 8px 0; }
+#wild-balls button { font-size: 11px; padding: 6px 3px; }
+#party { width: calc(100% - 12px); max-width: 310px; max-height: calc(100% - 16px); overflow-y: auto; border: 2px solid #48664c; border-radius: 10px; padding: 10px; background: #fffde9; color: #51412a; font-size: 11px; }
+#party-title { font-size: 13px; }
+#party::backdrop { background: #25302555; }
+.commerce-nav button { min-width: 0; overflow-wrap: anywhere; }
+
+/* Capture has its own ball so companion recall animations cannot affect it. */
+.wild-scene { position: relative; overflow: hidden; isolation: isolate; }
+.capture-ball { position: absolute; left: calc(50% - 11px); bottom: 7px; width: 22px; height: 22px; opacity: 0; transform-origin: 50% 95%; filter: drop-shadow(0 2px 1px #25302566); }
+.capture-top, .capture-bottom { position: absolute; left: 0; width: 22px; height: 12px; border: 2px solid #263144; box-sizing: border-box; }
+.capture-top { top: 0; background: #e44d50; border-radius: 14px 14px 0 0; transition: transform 120ms; }
+.capture-bottom { bottom: 0; background: #fffaf0; border-radius: 0 0 14px 14px; }
+.capture-button { position: absolute; left: 7px; top: 7px; width: 8px; height: 8px; box-sizing: border-box; border: 2px solid #263144; border-radius: 50%; background: white; }
+.capture-ball.is-open .capture-top { transform: translateY(-9px) rotate(-20deg); }
+.capture-ball.is-open .capture-button { opacity: 0; }
+[data-ball="great-ball"] .capture-top { background: linear-gradient(90deg,#d54c55 22%,#3882d9 22% 78%,#d54c55 78%); }
+[data-ball="ultra-ball"] .capture-top { background: linear-gradient(90deg,#e6c04d 22%,#343849 22% 78%,#e6c04d 78%); }
+.capture-flash { position: absolute; left: calc(50% - 32px); bottom: 5px; width: 64px; height: 64px; opacity: 0; border-radius: 50%; background: radial-gradient(circle,#fff 5%,#ffe5b3bb 35%,#ffedb000 70%); pointer-events: none; }
+.capture-stars { position: absolute; bottom: 18px; left: calc(50% - 35px); width: 70px; color: #e6ab23; text-shadow: 0 0 3px white; font-size: 22px; opacity: 0; }
+[data-capture="caught"] .capture-button { background: #b4d297; }
+#close-wild:disabled { opacity: .45; cursor: wait; }
