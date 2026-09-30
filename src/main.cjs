@@ -161,16 +161,17 @@ else {
       return { level: `data:audio/wav;base64,${level.toString('base64')}`, fanfare: `data:audio/mpeg;base64,${fanfare.toString('base64')}`, evolution: `data:audio/mpeg;base64,${evolution.toString('base64')}`, success: `data:audio/mpeg;base64,${success.toString('base64')}` };
     });
     ipcMain.handle('language', event => { if (trusted(event)) return I18n.language; });
-    ipcMain.handle('progress', event => { if (trusted(event)) return progress.get(); });
+    ipcMain.handle('progress', event => { if (trusted(event)) return progress.claimDailyReward(); });
     ipcMain.handle('item-images', async event => {
       if (!trusted(event)) return;
       const root = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'), 'assets', 'items');
-      return Object.fromEntries(await Promise.all(Object.keys(items).map(async id => {
+      return Object.fromEntries(await Promise.all(Object.keys(items).filter(id => !id.endsWith('-ball')).map(async id => {
         const bytes = await fs.readFile(path.join(root, `${id}.png`));
         return [id, `data:image/png;base64,${bytes.toString('base64')}`];
       })));
     });
     ipcMain.handle('buy-item', (event, id) => { if (trusted(event)) return progress.buy(id); });
+    ipcMain.handle('capture', (event, id, expected) => { if (trusted(event)) return progress.capture(id, expected); });
     ipcMain.handle('demo-balance', (event, balance) => {
       if (!trusted(event)) return;
       if (usageStatus.source !== 'demo') throw new Error(t('m76'));

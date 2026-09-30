@@ -6,6 +6,44 @@ const placeholder = document.querySelector('#placeholder');
 const player = new SpritePlayer(sprite);
 const evolutionPreview = document.querySelector('#evolution-preview');
 const previewPlayer = new SpritePlayer(evolutionPreview);
+const wildView = new WildEncounterView();
+wildView.onCapture = async (id, encounter) => {
+  if (!ready || addingTokens || loading || recall.busy) throw new Error('Busy');
+  addingTokens = true;
+  try {
+    const result = await window.pet.capture(id, { date: encounter.date, species: encounter.species, revision: growth.revision });
+    try { await wildView.captureAnimation.play(result, id); }
+    catch { wildView.captureAnimation.reset(); }
+    if (result.progress.revision >= growth.revision) growth = result.progress;
+    renderGrowth();
+    return result;
+  } finally {
+    addingTokens = false;
+    renderCommerce();
+    flushUsage();
+  }
+};
+const partyDialog = document.querySelector('#party');
+const partyButton = document.createElement('button');
+partyButton.type = 'button';
+partyButton.id = 'open-party';
+partyButton.dataset.i18n = 'partyTitle';
+partyButton.textContent = I18n.t('partyTitle');
+document.querySelector('.commerce-nav').append(partyButton);
+partyButton.addEventListener('click', () => { renderParty(); partyDialog.showModal(); });
+document.querySelector('#close-party').addEventListener('click', () => partyDialog.close());
+function renderParty() {
+  const list = document.querySelector('#party-list');
+  list.replaceChildren();
+  for (const member of growth?.party ?? []) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = `${I18n.name(member.name)} · Lv.${member.level}${member.starter === growth.starter ? ' ✓' : ''}`;
+    button.disabled = member.starter === growth.starter;
+    button.addEventListener('click', () => { partyDialog.close(); void selectSpecies(member.starter); });
+    list.append(button);
+  }
+}
 const growthAudio = new GrowthAudio();
 const slider = document.querySelector('#remaining');
 const profiles = {
@@ -108,6 +146,8 @@ function renderGrowth() {
   document.title = `Tokemon · ${name}`;
   refreshPetPresentation();
   renderCommerce();
+  wildView.update(growth.wildEncounter);
+  renderParty();
 }
 
 const commerce = document.querySelector('#commerce');
@@ -143,6 +183,7 @@ function renderCommerce() {
     const symbol = document.createElement('span');
     symbol.className = 'item-symbol';
     symbol.dataset.color = item.color;
+    if (item.id.endsWith('-ball')) symbol.classList.add('ball-symbol', item.id);
     symbol.textContent = I18n.name(item.symbol);
     symbol.setAttribute('aria-hidden', 'true');
     if (itemImages[item.id]) {
@@ -205,6 +246,12 @@ document.querySelector('#open-shop').addEventListener('click', () => openCommerc
 document.querySelector('#bag-tab').addEventListener('click', () => openCommerce('bag'));
 document.querySelector('#shop-tab').addEventListener('click', () => openCommerce('shop'));
 document.querySelector('#close-commerce').addEventListener('click', () => commerce.close());
+
+// Refresh daily rewards even when the app stays open across midnight or resumes from sleep.
+const dailyRewardTimer = setInterval(() => {
+  if (ready && !loading && !addingTokens && !recall.busy) void grow(() => window.pet.progress(), () => '', true);
+}, 60000);
+window.addEventListener('beforeunload', () => clearInterval(dailyRewardTimer));
 document.querySelector('#demo-wallet').addEventListener('submit', event => {
   event.preventDefault();
   if (usage.source !== 'demo' || !ready || addingTokens || loading || recall.busy) return;
@@ -329,6 +376,7 @@ async function grow(request, describe, itemAction = false) {
     addingTokens = false;
     tokenAdd.disabled = !ready;
     renderCommerce();
+    if (ready && !loading && !recall.busy) wildView.present();
     void reconcileRest();
     flushUsage();
   }
@@ -499,7 +547,7 @@ async function load() {
     flushUsage();
   } catch {
     message(t('m65'));
-  } finally { loading = false; renderCommerce(); }
+  } finally { loading = false; renderCommerce(); if (ready) wildView.present(); }
 }
 
 async function speak(transition = false) {

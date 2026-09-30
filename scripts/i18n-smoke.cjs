@@ -57,7 +57,7 @@ app.whenReady().then(async () => {
     assert.equal(await evaluate('JSON.stringify(growth)'), before);
     assert.equal(JSON.parse(fs.readFileSync(path.join(process.env.TOKEMON_TEST_DATA_DIR, 'settings.json'))).language, code);
     await evaluate('openCommerce("shop")');
-    assert.equal(await evaluate('document.querySelectorAll(".item-card").length'), 6);
+    assert.equal(await evaluate('document.querySelectorAll(".item-card").length'), Object.keys(require('../src/items.cjs').items).length);
     if (code !== 'ko') assert.equal(await evaluate('/[가-힣]/.test(document.body.innerText)'), false);
     await delay(150);
     fs.writeFileSync(path.join(root, `i18n-${code}-shop.png`), (await window.webContents.capturePage()).toPNG());

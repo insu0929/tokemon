@@ -44,8 +44,8 @@ function send(method, params = {}) {
   const result = await send('Runtime.evaluate', {
     expression: `(async () => {
       const assets = await window.pet.assets();
-      for (let i = 0; i < 100 && !ready; i++) await new Promise(r => setTimeout(r, 100));
-      if (!ready || player.frames.length < 2) throw new Error('Sprite not decoded');
+      for (let i = 0; i < 300 && (typeof ready === 'undefined' || !ready); i++) await new Promise(r => setTimeout(r, 100));
+      if (typeof ready === 'undefined' || !ready || player.frames.length < 2) throw new Error('Sprite not decoded');
       if (!assets.sprite.startsWith('data:image/gif') || !assets.cry.startsWith('data:audio/ogg')) throw new Error('Bundled assets missing');
       applyRemaining(1, false);
       if (state !== 'fainted' || player.timer !== undefined) throw new Error('Faint failed');
@@ -71,7 +71,7 @@ function send(method, params = {}) {
       if (!audio.level.startsWith('data:audio/wav') || ![audio.fanfare, audio.evolution, audio.success].every(item => item.startsWith('data:audio/mpeg'))) throw new Error('Growth audio missing');
       if (!growth || growth.level < 1 || !document.querySelector('.exp-track')) throw new Error('EXP HUD missing');
       const images = Object.values(await window.pet.itemImages());
-      if (images.length !== 6 || growth.items.length !== 6 || !images.every(item => item.startsWith('data:image/png'))) throw new Error('Item images missing');
+      if (images.length !== 6 || growth.items.length !== 9 || !images.every(item => item.startsWith('data:image/png'))) throw new Error('Item images missing');
       for (const source of images) await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = () => reject(new Error('Item image not decoded')); image.src = source; });
       document.querySelector('#mute').click();
       for (let i = 0; i < 20 && !muted; i++) await new Promise(r => setTimeout(r, 50));
@@ -79,7 +79,11 @@ function send(method, params = {}) {
       if (I18n.language !== 'ko' || document.querySelector('#species-label').textContent !== I18n.name(displayedInfo.name)) throw new Error('Default language failed');
       const volume = document.querySelector('#volume');
       if (!volume || !document.querySelector('#volume-panel').hidden || volume.value !== '100') throw new Error('Volume slider missing');
-      return 'PASS: portable exe, all 151 sprites and cries decoded offline, four-language names, growth audio, EXP HUD, item images, mute button, volume slider, animation, faint and recovery';
+      if (!growth.wildEncounter || growth.wildEncounter.date !== new Date().toLocaleDateString('sv') || growth.inventory['poke-ball'] !== 1) throw new Error('Daily wild encounter missing');
+      for (let i = 0; i < 100 && !wildView.dialog.open; i++) await new Promise(r => setTimeout(r, 100));
+      if (!wildView.dialog.open || wildView.canvas.hidden || document.querySelector('#wild-balls button') === null) throw new Error('Wild dialog failed');
+      document.querySelector('#close-wild').click();
+      return 'PASS: portable exe, all 151 sprites and cries decoded offline, four-language names, growth audio, EXP HUD, item images, mute button, volume slider, daily wild encounter, animation, faint and recovery';
     })()`, awaitPromise: true, returnByValue: true,
   });
   assert.ok(!result.exceptionDetails, JSON.stringify(result.exceptionDetails));
@@ -89,6 +93,6 @@ function send(method, params = {}) {
 })().catch(error => {
   console.error(error);
   socket?.close();
-  if (child.pid) spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+  if (child.pid) spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
   process.exitCode = 1;
 });
